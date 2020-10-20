@@ -2,9 +2,12 @@
 
 This project proposes an explanable automated medical coding approach based on Hierarchical Label-wise Attention Network and label embedding initialisation. The appraoch can be applied to multi-label text classification in any domains.
 
+The detail explanation of the approach is in 
+* Explainable Automated Coding of Clinical Notes using Hierarchical Label-Wise AttentionNetworks and Label Embedding Initialisation, submitted to Journal of Biomedical Informatics. Preprint to be available soon.
+
 ## Hierarchical Label-wise Attention Network
 <p align="center">
-    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HLAN-architecture.PNG" width="800" title="Hierarchical Label-wise Attention Network">
+    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HLAN-architecture.PNG" width="600" title="Hierarchical Label-wise Attention Network">
 </p>
 
 ## Label embedding initialisation
@@ -47,12 +50,12 @@ def _code_emb_init(self, code_emb, code_list):
         print("final layer: code embedding initialised")
 ```
 
-# Results
+# Results of CNN, CNN+att, BiGRU, and BERT with label embedding initialisation.
 See the folders for detailed results (mean and standard deviation)of various Micro-averaged, Macro-averaged, and example-based metrics) of each model. Brief results are in the figures below, where ```+LE``` means the model with label embedding initialisation.
 
 <p align="center">
-    <img src="https://github.com/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/mimic-iii-results.JPG" width="435" title="Results of the MIMIC-III dataset">
-    <img src="https://github.com/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/mimic-iii-50%20results.JPG" width="435" title="Results of the MIMIC-III-50 dataset">
+    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/mimic-iii-results.JPG" width="435" title="Results of the MIMIC-III dataset">
+    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/mimic-iii-50%20results.JPG" width="435" title="Results of the MIMIC-III-50 dataset">
 </p>
 
 # Requirements
