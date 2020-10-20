@@ -10,13 +10,8 @@ A part of the results (especially regarding label embedding initialisation) was 
 ## Hierarchical Label-wise Attention Network
 <p align="left">
     <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HLAN-architecture.PNG" width="600" title="Hierarchical Label-wise Attention Network">
-    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/label-embedding-init-figure.PNG" width="300" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
 </p>
-
-## Label embedding initialisation
-<p align="center">
-    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/label-embedding-init-figure.PNG" width="300" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
-</p>
+The key computation graph is implemented in [```def inference_per_label(self)```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/cd9a360d5522d239d2ac5cef9a4ab507627bfa8d/HLAN/HAN_model_dynamic.py#L491) in ```./HLAN/HAN_model.py```.
 
 # Requirements
 * Python 3 (tested on versions 3.6.* and 3.7.*)
@@ -48,8 +43,14 @@ A part of the results (especially regarding label embedding initialisation) was 
 * ```./cache_vocabulary_label_pik``` stores the cached .pik files about vocabularies and labels
 * ```./results-HEALTAC 2020``` contains the CNN, CNN+att, Bi-GRU, BERT results with label embedding initilisation
 
-# Key Implementations
-Key part of the implementation of label embedding initiailisation:
+## Label embedding initialisation
+<p align="left">
+    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/label-embedding-init-figure.PNG" width="300" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
+</p>
+
+Key part of the implementation of label embedding initiailisation is in the two functions [```def assign_pretrained_label_embedding_per_label```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/cd9a360d5522d239d2ac5cef9a4ab507627bfa8d/HLAN/HAN_train.py#L759) (for HLAN and HA-GRU) and [```def assign_pretrained_label_embedding```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/cd9a360d5522d239d2ac5cef9a4ab507627bfa8d/HLAN/HAN_train.py#L720) (for HAN) in ```./HLAN/HAN_train.py```.
+
+Besides, below is the implementation on top of the [```model.py```](https://github.com/jamesmullenbach/caml-mimic/blob/master/learn/models.py) from the caml-mimic GitHub project.
 ```
 # based on https://github.com/jamesmullenbach/caml-mimic/blob/master/learn/models.py
 def _code_emb_init(self, code_emb, code_list):
