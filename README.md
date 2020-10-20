@@ -14,10 +14,10 @@ A part of the results (especially regarding label embedding initialisation) was 
 
 ## Label embedding initialisation
 <p align="center">
-    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/label-embedding-init-figure.PNG" width="400" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
+    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/label-embedding-init-figure.PNG" width="300" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
 </p>
 
-# Quick Start
+# Demo for Quick Start
 * Zero, please ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/).
 
 * First, download the files in ```checkpoints``` and ```cache_vocabulary_label_pik``` folders from Onedrive.
@@ -25,6 +25,17 @@ A part of the results (especially regarding label embedding initialisation) was 
 * Second, run the Jupyter Notebook demo [```demo_HLAN_viz.ipynb```](https://github.com/acadTags/ExplainableAutomated-Medical-Coding/blob/master/HLAN/demo_HLAN_viz.ipynb) and try with your own discharge summaries or those in the MIMIC-III dataset. By setting the ```to_input``` in the notebook as ```True```, the notebook will ask you to input or paste a discharge summary; otherwise, you can save your discharge summaries, each in a line, under the ```..\dataset\``` folder and replace the ```filename_to_predict``` to the filename (see ```Section 2.part2``` in the notebook). After running, the predictions are displayed with label-wise attention visualisations. The attention visualisations are further stored as ```.xlsx``` files in the ```..\explanation\``` folder. 
 
 # Content
+* ```./HLAN/HAN_train.py``` contains code for configuration and training
+* ```./HLAN/HAN_model.py``` contains the computational graph, loss function and optimisation
+* ```./HLAN/data_util_gensim.py``` contains code for input and target generation
+* ```./HLAN/demo_HLAN_viz.ipynb``` and ```./HLAN/model_predict_util.py``` contains code for the demo based on Jupyter Notebook and the helper functions
+* ```./embeddings``` contains self-trained word2vec embeddings: word embeddings and label embeddings
+* ```./datasets``` contains the datasets used
+* ```./checkpoints``` contains the checkpoints of HLAN, HA-GRU, and HAN models trained from the author on the MIMIC-III datasets
+* ```./explanations``` contains the Excel sheets displaying the attention visualisation, generated after running the demo in ```./HLAN/demo_HLAN_viz.ipynb```
+* ```./knowledge_bases``` contains knowledge sources used for label subsumption relations and the ICD code description files
+* ```./cache_vocabulary_label_pik``` stores the cached .pik files about vocabularies and labels
+* ```./results-HEALTAC 2020``` contains the CNN, CNN+att, Bi-GRU, BERT results with label embedding initilisation
 
 # Key Implementations
 Key part of the implementation of label embedding initiailisation:
