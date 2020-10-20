@@ -16,6 +16,8 @@ The detail explanation of the approach is in
 </p>
 
 # Quick Start
+First, download the files in ```checkpoints``` and ```cache_vocabulary_label_pik``` folders from Onedrive.
+Second, run the Jupyter Notebook demo [```demo_HLAN_viz.ipynb```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/demo_HLAN_viz.ipynb) and try with your own discharge summaries or those in the MIMIC-III dataset. To note that the access of the MIMIC-III dataset needs to be applied, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/).
 
 # Content
 
