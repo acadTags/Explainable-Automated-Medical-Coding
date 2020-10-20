@@ -1,7 +1,13 @@
-# label-embedding-initialisation
+# Explanable Automated Medical Coding
 
-This project proposes a label embedding initialisation approach to improve multi-label classification (and especially for automated medical coding).
+This project proposes an explanable automated medical coding approach based on Hierarchical Label-wise Attention Network and label embedding initialisation. The appraoch can be applied to multi-label text classification in any domains.
 
+## Hierarchical Label-wise Attention Network
+<p align="center">
+    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HLAN-architecture.PNG" width="400" title="Hierarchical Label-wise Attention Network">
+</p>
+
+## Label embedding initialisation
 <p align="center">
     <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/label-embedding-init-figure.PNG" width="400" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
 </p>
