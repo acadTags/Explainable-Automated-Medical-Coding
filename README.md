@@ -19,15 +19,17 @@ A part of the results (especially regarding label embedding initialisation) was 
 
 # Requirements
 * Python 3 (tested on versions 3.6.* and 3.7.*)
-## For HLAN, HA-GRU, and HAN
-* Tensorflow 1.* (tested on versions 1.4.1, 1.8.0, and 1.14.0)
 * [Gensim](https://radimrehurek.com/gensim/) for pre-training label embeddings with the word2vec algorithm
 * [Numpy](http://www.numpy.org/)
-* [TFLearn](http://tflearn.org/)
 * [scikit-learn](http://scikit-learn.github.io/stable)
-## Additional libraries: for CNN, CNN+att, Bi-GRU
+* [Spacy](https://spacy.io/)
+* [NLTK](https://www.nltk.org/)
+### For HLAN, HA-GRU, and HAN
+* Tensorflow 1.* (tested on versions 1.4.1, 1.8.0, and 1.14.0)
+* [TFLearn](http://tflearn.org/)
+### Additional libraries: for CNN, CNN+att, Bi-GRU
 * PyTorch 0.3.0 with [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) for CNN,BiGRU,CNN+att models for CNN,BiGRU,CNN+att models
-## Additional libraries: for BERT
+### Additional libraries: for BERT
 * PyTorch 1.0.0+ for BERT models
 * [Huggingface Transformers](https://github.com/huggingface/transformers) for BERT training and BioBERT model conversion to PyTorch
 * [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers) 0.20.2 for Multi-Label Classfication with BERT models
