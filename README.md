@@ -4,7 +4,7 @@ This project proposes an explanable automated medical coding approach based on H
 
 ## Hierarchical Label-wise Attention Network
 <p align="center">
-    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HLAN-architecture.PNG" width="400" title="Hierarchical Label-wise Attention Network">
+    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HLAN-architecture.PNG" width="800" title="Hierarchical Label-wise Attention Network">
 </p>
 
 ## Label embedding initialisation
