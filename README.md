@@ -8,8 +8,9 @@ The detail explanation of the approach is in
 A part of the results (especially regarding label embedding initialisation) was orally and virtually presented in [HealTAC 2020](http://healtex.org/healtac-2020/programme/) with [slides](https://drive.google.com/file/d/1XIhuwMuelmsFYvsXYABr7NJjnJTULrez/view) available.
 
 ## Hierarchical Label-wise Attention Network
-<p align="center">
+<p align="left">
     <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HLAN-architecture.PNG" width="600" title="Hierarchical Label-wise Attention Network">
+    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/label-embedding-init-figure.PNG" width="300" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
 </p>
 
 ## Label embedding initialisation
