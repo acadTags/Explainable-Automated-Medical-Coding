@@ -3,7 +3,7 @@
 This project proposes a label embedding initialisation approach to improve multi-label classification (and especially for automated medical coding).
 
 <p align="center">
-    <img src="https://github.com/anonymised-account/label-embedding-medical-coding/blob/master/label-embedding-init-figure.PNG" width="400" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
+    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/label-embedding-init-figure.PNG" width="400" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
 </p>
 
 Key part of the implementation of label embedding initiailisation:
@@ -45,8 +45,8 @@ def _code_emb_init(self, code_emb, code_list):
 See the folders for detailed results (mean and standard deviation)of various Micro-averaged, Macro-averaged, and example-based metrics) of each model. Brief results are in the figures below, where ```+LE``` means the model with label embedding initialisation.
 
 <p align="center">
-    <img src="https://github.com/anonymised-account/label-embedding-medical-coding/blob/master/mimic-iii-results.JPG" width="435" title="Results of the MIMIC-III dataset">
-    <img src="https://github.com/anonymised-account/label-embedding-medical-coding/blob/master/mimic-iii-50%20results.JPG" width="435" title="Results of the MIMIC-III-50 dataset">
+    <img src="https://github.com/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/mimic-iii-results.JPG" width="435" title="Results of the MIMIC-III dataset">
+    <img src="https://github.com/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/mimic-iii-50%20results.JPG" width="435" title="Results of the MIMIC-III-50 dataset">
 </p>
 
 # Requirements
