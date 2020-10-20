@@ -3,7 +3,7 @@
 This project proposes an explanable automated medical coding approach based on Hierarchical Label-wise Attention Network and label embedding initialisation. The appraoch can be applied to multi-label text classification in any domains.
 
 The detail explanation of the approach is in 
-* Explainable Automated Coding of Clinical Notes using Hierarchical Label-Wise AttentionNetworks and Label Embedding Initialisation, submitted to Journal of Biomedical Informatics. Preprint to be available soon.
+* Explainable Automated Coding of Clinical Notes using Hierarchical Label-Wise Attention Networks and Label Embedding Initialisation, submitted to Journal of Biomedical Informatics. Preprint to be available soon.
 
 ## Hierarchical Label-wise Attention Network
 <p align="center">
@@ -15,6 +15,11 @@ The detail explanation of the approach is in
     <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/label-embedding-init-figure.PNG" width="400" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
 </p>
 
+# Quick Start
+
+# Content
+
+# Key Implementations
 Key part of the implementation of label embedding initiailisation:
 ```
 # based on https://github.com/jamesmullenbach/caml-mimic/blob/master/learn/models.py
@@ -66,6 +71,16 @@ See the folders for detailed results (mean and standard deviation)of various Mic
 * [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers) 0.20.2 for Multi-Label Classfication with BERT models
 * [Gensim](https://radimrehurek.com/gensim/) for pre-training label embeddings with the word2vec algorithm
 * [BioBERT](https://github.com/dmis-lab/biobert) for pre-trained BioBERT models.
+
+#### Tips for Training and Testing
+For all the cases above, ```kfold``` can be set to -1 to test with a single fold for quick testing.
+
+To view the changing of training loss and validation loss, replacing $PATH-logs$ to a real path.
+```
+tensorboard --logdir $PATH-logs$
+```
+
+# Key Configurations
 
 # Dataset and preprocessing
 We used [the MIMIC-III dataset](https://mimic.physionet.org/) with the preprocessing steps from [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) to generate the two dataset settings MIMIC-III and MIMIC-III-50.
