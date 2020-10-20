@@ -5,6 +5,8 @@ This project proposes an explanable automated medical coding approach based on H
 The detail explanation of the approach is in 
 * Explainable Automated Coding of Clinical Notes using Hierarchical Label-Wise Attention Networks and Label Embedding Initialisation, submitted to Journal of Biomedical Informatics. Preprint to be available soon.
 
+A part of the results (especially regarding label embedding initialisation) was orally and virtually presented in [HealTAC 2020](http://healtex.org/healtac-2020/programme/) with [slides](https://drive.google.com/file/d/1XIhuwMuelmsFYvsXYABr7NJjnJTULrez/view) available.
+
 ## Hierarchical Label-wise Attention Network
 <p align="center">
     <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HLAN-architecture.PNG" width="600" title="Hierarchical Label-wise Attention Network">
