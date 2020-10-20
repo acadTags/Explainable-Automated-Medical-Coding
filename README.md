@@ -62,14 +62,6 @@ def _code_emb_init(self, code_emb, code_list):
         print("final layer: code embedding initialised")
 ```
 
-# Results of CNN, CNN+att, BiGRU, and BERT with label embedding initialisation.
-See the folders for detailed results (mean and standard deviation)of various Micro-averaged, Macro-averaged, and example-based metrics) of each model. Brief results are in the figures below, where ```+LE``` means the model with label embedding initialisation.
-
-<p align="center">
-    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/mimic-iii-results.JPG" width="435" title="Results of the MIMIC-III dataset">
-    <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/mimic-iii-50%20results.JPG" width="435" title="Results of the MIMIC-III-50 dataset">
-</p>
-
 # Requirements
 * Python 3.6.*
 * PyTorch 0.3.0 with [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) for CNN,BiGRU,CNN+att models for CNN,BiGRU,CNN+att models
