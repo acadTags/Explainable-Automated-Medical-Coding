@@ -16,9 +16,11 @@ The detail explanation of the approach is in
 </p>
 
 # Quick Start
+* Zero, please ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/).
+
 * First, download the files in ```checkpoints``` and ```cache_vocabulary_label_pik``` folders from Onedrive.
 
-* Second, run the Jupyter Notebook demo [```demo_HLAN_viz.ipynb```](https://github.com/acadTags/ExplainableAutomated-Medical-Coding/blob/master/HLAN/demo_HLAN_viz.ipynb) and try with your own discharge summaries or those in the MIMIC-III dataset. To note that the access of the MIMIC-III dataset needs to be applied, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/).
+* Second, run the Jupyter Notebook demo [```demo_HLAN_viz.ipynb```](https://github.com/acadTags/ExplainableAutomated-Medical-Coding/blob/master/HLAN/demo_HLAN_viz.ipynb) and try with your own discharge summaries or those in the MIMIC-III dataset. By setting the ```to_input``` in the notebook as ```True```, the notebook will ask you to input or paste a discharge summary; otherwise, you can save your discharge summaries, each in a line, under the ```..\dataset\``` folder and replace the ```filename_to_predict``` to the filename (see ```Section 2.part2``` in the notebook). After running, the predictions are displayed with label-wise attention visualisations. The attention visualisations are further stored as ```.xlsx``` files in the ```..\explanation\``` folder. 
 
 # Content
 
