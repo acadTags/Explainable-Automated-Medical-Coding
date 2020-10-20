@@ -17,6 +17,22 @@ A part of the results (especially regarding label embedding initialisation) was 
     <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/label-embedding-init-figure.PNG" width="300" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
 </p>
 
+# Requirements
+* Python 3 (tested on versions 3.6.* and 3.7.*)
+## For HLAN, HA-GRU, and HAN
+* Tensorflow 1.* (tested on versions 1.4.1, 1.8.0, and 1.14.0)
+* [Gensim](https://radimrehurek.com/gensim/) for pre-training label embeddings with the word2vec algorithm
+* [Numpy](http://www.numpy.org/)
+* [TFLearn](http://tflearn.org/)
+* [scikit-learn](http://scikit-learn.github.io/stable)
+## Additional libraries: for CNN, CNN+att, Bi-GRU
+* PyTorch 0.3.0 with [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) for CNN,BiGRU,CNN+att models for CNN,BiGRU,CNN+att models
+## Additional libraries: for BERT
+* PyTorch 1.0.0+ for BERT models
+* [Huggingface Transformers](https://github.com/huggingface/transformers) for BERT training and BioBERT model conversion to PyTorch
+* [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers) 0.20.2 for Multi-Label Classfication with BERT models
+* [BioBERT](https://github.com/dmis-lab/biobert) for pre-trained BioBERT models.
+
 # Demo for Quick Start
 * Zero, please ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/).
 
@@ -72,15 +88,6 @@ def _code_emb_init(self, code_emb, code_list):
         self.classifier.weight.data = torch.Tensor(weights).clone()
         print("final layer: code embedding initialised")
 ```
-
-# Requirements
-* Python 3.6.*
-* PyTorch 0.3.0 with [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) for CNN,BiGRU,CNN+att models for CNN,BiGRU,CNN+att models
-* PyTorch 1.0.0+ for BERT models
-* [Huggingface Transformers](https://github.com/huggingface/transformers) for BERT training and BioBERT model conversion to PyTorch
-* [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers) 0.20.2 for Multi-Label Classfication with BERT models
-* [Gensim](https://radimrehurek.com/gensim/) for pre-training label embeddings with the word2vec algorithm
-* [BioBERT](https://github.com/dmis-lab/biobert) for pre-trained BioBERT models.
 
 #### Tips for Training and Testing
 For all the cases above, ```kfold``` can be set to -1 to test with a single fold for quick testing.
