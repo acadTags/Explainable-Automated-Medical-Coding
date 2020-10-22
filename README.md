@@ -44,6 +44,13 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * ```./cache_vocabulary_label_pik``` stores the cached .pik files about vocabularies and labels
 * ```./results-HEALTAC 2020``` contains the CNN, CNN+att, Bi-GRU, BERT results with label embedding initilisation
 
+# Key Configurations and Further Details
+
+To view the changing of training loss and validation loss, replacing $PATH-logs$ to a real path.
+```
+tensorboard --logdir $PATH-logs$
+```
+
 ## Label embedding initialisation
 <p align="center">
     <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/results-HealTAC%202020/label-embedding-init-figure.PNG" width="300" title="Label Embedding Initialisation for Deep-Learning-Based Multi-Label Classification">
@@ -86,21 +93,13 @@ def _code_emb_init(self, code_emb, code_list):
         print("final layer: code embedding initialised")
 ```
 
-# Key Configurations
+## Dataset and preprocessing
+We used [the MIMIC-III dataset](https://mimic.physionet.org/) with the preprocessing steps from [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) to generate the two dataset settings MIMIC-III and MIMIC-III-50. We also created a MIMIC-III-shielding dataset based on the NHS shielding ICD-10 codes.
 
-#### Tips for Training and Testing
-To view the changing of training loss and validation loss, replacing $PATH-logs$ to a real path.
-```
-tensorboard --logdir $PATH-logs$
-```
+## Pre-training of label embeddings
+We used the Continous Bag-of-Words algorithm (CBoW) in Gensim word2vec (see [gensim.models.word2vec.Word2Vec](https://radimrehurek.com/gensim/models/word2vec.html#gensim.models.word2vec.Word2Vec), on all label sets in the training data. Codes for training word and label embeddings are available in [```train_word_embedding.py```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/embeddings/train_word_embedding.py) and [```train_code_embedding.py```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/embeddings/train_code_embedding.py).
 
-# Dataset and preprocessing
-We used [the MIMIC-III dataset](https://mimic.physionet.org/) with the preprocessing steps from [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) to generate the two dataset settings MIMIC-III and MIMIC-III-50.
-
-# Pre-training of label embeddings
-We used the continous bag-of-words algorithm (cbow) in Gensim word2vec (see [gensim.models.word2vec.Word2Vec](https://radimrehurek.com/gensim/models/word2vec.html#gensim.models.word2vec.Word2Vec), on all label sets in the training data.
-
-# Additional libraries for other models
+## Additional libraries for other models
 For CNN, CNN+att, Bi-GRU:
 * PyTorch 0.3.0 with [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) for CNN,BiGRU,CNN+att models for CNN,BiGRU,CNN+att models
 For BERT:
@@ -109,7 +108,7 @@ For BERT:
 * [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers) 0.20.2 for Multi-Label Classfication with BERT models
 * [BioBERT](https://github.com/dmis-lab/biobert) for pre-trained BioBERT models.
 
-# Other details 
+## Other details 
 * Using pre-trained BioBERT models: See answer from https://github.com/huggingface/transformers/issues/457#issuecomment-518403170.
 * Training BERT for long documents: We adapted the sliding window approach from [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers) for multi-label classification. The idea is to treat a long document (discharge summaries in this project) as separate documents within the token length limit (sharing same set of labels) for training. During the testing stage, output averaged results of separated documents. The results of MIMIC-III-50 were based on this adaptation. The results of MIMIC-III were based on first 512 tokens only due to a memory usage above the 60G limit.
 
