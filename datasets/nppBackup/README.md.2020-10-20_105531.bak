@@ -1,6 +1,0 @@
-# Datasets
-
-Datasets were originally from MIMIC-III and the data pretrained using the script provided from the [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) Github reporitory.
-
-To further preprocess the data suitable for this program.
-

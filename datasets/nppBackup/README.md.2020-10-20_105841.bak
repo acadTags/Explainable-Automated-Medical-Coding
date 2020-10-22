@@ -1,8 +1,0 @@
-# Datasets
-
-Datasets were originally from MIMIC-III and the data pretrained using the script provided from the [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) Github reporitory.
-
-To further preprocess the data suitable for this program, please ensure that:
-* Every line of the data contain a document (e.g. a discharge summary) and its labels (e.g. ICD-9 codes). The document and the labels are separated by a ```__label__``` sign.
-
-This data format is the same as in the ```bibsonomy_preprocessed_merged_final.txt``` from the GitHub project [Automated-Social-Annotation](https://github.com/acadTags/Automated-Social-Annotation/tree/master/datasets).

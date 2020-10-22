@@ -1,5 +1,0 @@
-Keep this folder in the program. The vocabulary information, label information, label similarity matrix and label subsumption matrix for each dataset are stored here after the first run.
-
-For MIMIC-III-50, the relevant files to be automatically generated to this folders are:
-* icd9-50_label_sub.pik
-* mimic3-ds-50_label_sim_0.pik

@@ -1,1 +1,0 @@
-Keep this folder in the program. The ```.xlsx``` Excel sheets are generated to this folder after running the Jupyter Notebook demo [```demo_HLAN_viz.ipynb```](https://github.com/acadTags/ExplainableAutomated-Medical-Coding/blob/master/HLAN/demo_HLAN_viz.ipynb).
