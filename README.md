@@ -48,21 +48,38 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 
 ## Training the models
 
-The files under ```./embeddings``` can be downloaded from .
+```--dataset``` is set to ```mimic3=ds-50``` for MIMIC-III-50, ```mimic-ds``` for MIMIC-III, and ```mimic-ds-shielding-th50``` for MIMIC-III-shielding.
+
+To use label embedding initialisation (*+LE*), set ```--use_label_embedding``` to ```True```; otherwise, set it to ```False```.
+
+The files under ```./embeddings``` can be downloaded from Onedrive.
 
 All the ```--marking_id```s below are simply for better marking of the command, which will appear in the name of the output files, can be changed to other values and do not affect the running.
 
 #### Run HLAN
 To train with the MIMIC-III-50 dataset
 ```
-python HLAN_train.py --dataset mimic-ds-50
+python HAN_train.py --dataset mimic3-ds-50 --batch_size 32 --per_label_attention=True --per_label_sent_only=False --num_epochs 100 --report_rand_pred=False --running_times 1 --early_stop_lr 0.00002 --remove_ckpts_before_train=False --use_label_embedding=True --ckpt_dir checkpoint_HLAN+LE_50/ --use_sent_split_padded_version=False --marking_id 50-hlan --gpu=True
 ```
 
-#### Run HAGRU
+#### Run HA-GRU
+This is by changing ```--per_label_sent_only``` to ```True``` while keeping  ```--per_label_attention``` as ```True```.
+
+To train with the MIMIC-III-50 dataset
+```
+python HAN_train.py --dataset mimic3-ds-50 --batch_size 32 --per_label_attention=True --per_label_sent_only=True --num_epochs 100 --report_rand_pred=False --running_times 1 --early_stop_lr 0.00002 --remove_ckpts_before_train=False --use_label_embedding=True --ckpt_dir checkpoint_HAGRU+LE_50/ --use_sent_split_padded_version=False --marking_id 50-hagru --gpu=True
+```
 
 #### Run HAN
+This is by changing ```--per_label_attention``` to ```False```. The ```--batch_size``` is changed to ```128``` for this model in the experiment.
 
-For all the models above, you can set the learning rate (```--learning_rate```), number of epochs (```--num_epochs```), fold for cross-validation (```--kfold```), early stop learning rate (```--early_stop_lr```), and other configurations when you run the command, or set those in the ```*_train.py``` files.
+To train with the MIMIC-III-50 dataset
+```
+python HAN_train.py --dataset mimic3-ds-50 --batch_size 128 --per_label_attention=False --per_label_sent_only=False --num_epochs 100 --report_rand_pred=False --running_times 1 --early_stop_lr 0.00002 --remove_ckpts_before_train=False --use_label_embedding=True --ckpt_dir checkpoint_HAN+LE_50/ --use_sent_split_padded_version=False --marking_id 50-han --gpu=True
+```
+
+#### Other Configurations
+For all the models above, you can set the learning rate (```--learning_rate```), number of epochs (```--num_epochs```), early stop learning rate (```--early_stop_lr```), and other configurations when you run the command, or set those in the ```*_train.py``` files.
 
 Check the full list of configurations in ```HAN_train.py```.
 
