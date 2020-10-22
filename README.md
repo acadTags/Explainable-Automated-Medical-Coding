@@ -137,12 +137,11 @@ We used [the MIMIC-III dataset](https://mimic.physionet.org/) with the preproces
 We used the Continous Bag-of-Words algorithm (CBoW) in Gensim word2vec (see [gensim.models.word2vec.Word2Vec](https://radimrehurek.com/gensim/models/word2vec.html#gensim.models.word2vec.Word2Vec), on all label sets in the training data. Codes for training word and label embeddings are available in [```train_word_embedding.py```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/embeddings/train_word_embedding.py) and [```train_code_embedding.py```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/embeddings/train_code_embedding.py).
 
 ## Additional libraries for other models
-For CNN, CNN+att, Bi-GRU:
-* PyTorch 0.3.0 with [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) for CNN,BiGRU,CNN+att models for CNN,BiGRU,CNN+att models
-For BERT:
-* PyTorch 1.0.0+ 
+For CNN, CNN+att, Bi-GRU models:
+* PyTorch 0.3.0 with [caml-mimic](https://github.com/jamesmullenbach/caml-mimic)
 
 For BERT models:
+* PyTorch 1.0.0+ 
 * [Huggingface Transformers](https://github.com/huggingface/transformers) for BERT training and BioBERT model conversion to PyTorch
 * [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers) 0.20.2 for Multi-Label Classfication with BERT models
 * [BioBERT](https://github.com/dmis-lab/biobert) for pre-trained BioBERT models.
