@@ -25,11 +25,11 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * [TFLearn](http://tflearn.org/) for sequence padding
 
 # Demo for Quick Start
-* Zero, please ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/).
+* First, please ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/).
 
-* First, download the files in ```checkpoints``` and ```cache_vocabulary_label_pik``` folders from Onedrive.
+* Second, download the files in ```checkpoints``` and ```cache_vocabulary_label_pik``` folders from Onedrive.
 
-* Second, run the Jupyter Notebook demo [```demo_HLAN_viz.ipynb```](https://github.com/acadTags/ExplainableAutomated-Medical-Coding/blob/master/HLAN/demo_HLAN_viz.ipynb) and try with your own discharge summaries or those in the MIMIC-III dataset. By setting the ```to_input``` in the notebook as ```True```, the notebook will ask you to input or paste a discharge summary; otherwise, you can save your discharge summaries, each in a line, under the ```..\dataset\``` folder and replace the ```filename_to_predict``` to the filename (see ```Section 2.part2``` in the notebook). After running, the predictions are displayed with label-wise attention visualisations. The attention visualisations are further stored as ```.xlsx``` files in the ```..\explanation\``` folder. 
+* Third, run the Jupyter Notebook demo [```demo_HLAN_viz.ipynb```](https://github.com/acadTags/ExplainableAutomated-Medical-Coding/blob/master/HLAN/demo_HLAN_viz.ipynb) and try with your own discharge summaries or those in the MIMIC-III dataset. By setting the ```to_input``` in the notebook as ```True```, the notebook will ask you to input or paste a discharge summary; otherwise, you can save your discharge summaries, each in a line, under the ```..\dataset\``` folder and replace the ```filename_to_predict``` to the filename (see ```Section 2.part2``` in the notebook). After running, the predictions are displayed with label-wise attention visualisations. The attention visualisations are further stored as ```.xlsx``` files in the ```..\explanation\``` folder. 
 
 # Content
 * ```./HLAN/HAN_train.py``` contains code for configuration and training
@@ -45,6 +45,26 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * ```./results-HEALTAC 2020``` contains the CNN, CNN+att, Bi-GRU, BERT results with label embedding initilisation
 
 # Key Configurations and Further Details
+
+## Training the models
+
+The files under ```./embeddings``` can be downloaded from .
+
+All the ```--marking_id```s below are simply for better marking of the command, which will appear in the name of the output files, can be changed to other values and do not affect the running.
+
+#### Run HLAN
+To train with the MIMIC-III-50 dataset
+```
+python HLAN_train.py --dataset mimic-ds-50
+```
+
+#### Run HAGRU
+
+#### Run HAN
+
+For all the models above, you can set the learning rate (```--learning_rate```), number of epochs (```--num_epochs```), fold for cross-validation (```--kfold```), early stop learning rate (```--early_stop_lr```), and other configurations when you run the command, or set those in the ```*_train.py``` files.
+
+Check the full list of configurations in ```HAN_train.py```.
 
 To view the changing of training loss and validation loss, replacing $PATH-logs$ to a real path.
 ```
@@ -113,5 +133,6 @@ For BERT:
 * Training BERT for long documents: We adapted the sliding window approach from [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers) for multi-label classification. The idea is to treat a long document (discharge summaries in this project) as separate documents within the token length limit (sharing same set of labels) for training. During the testing stage, output averaged results of separated documents. The results of MIMIC-III-50 were based on this adaptation. The results of MIMIC-III were based on first 512 tokens only due to a memory usage above the 60G limit.
 
 # Acknowledgement
+* Our code is based on our previous implenmatation on (Automated-Social-Annotation)[https://github.com/acadTags/Automated-Social-Annotation], which is based on [brightmart's implementation](https://github.com/brightmart/text_classification) of TextRNN and Hierarchical Attention Network under the MIT license.
 * The MIMIC-III dataset is from https://mimic.physionet.org/ after request and training.
 * Thanks for the kind answers from [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers).
