@@ -140,7 +140,9 @@ We used the Continous Bag-of-Words algorithm (CBoW) in Gensim word2vec (see [gen
 For CNN, CNN+att, Bi-GRU:
 * PyTorch 0.3.0 with [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) for CNN,BiGRU,CNN+att models for CNN,BiGRU,CNN+att models
 For BERT:
-* PyTorch 1.0.0+ for BERT models
+* PyTorch 1.0.0+ 
+
+For BERT models:
 * [Huggingface Transformers](https://github.com/huggingface/transformers) for BERT training and BioBERT model conversion to PyTorch
 * [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers) 0.20.2 for Multi-Label Classfication with BERT models
 * [BioBERT](https://github.com/dmis-lab/biobert) for pre-trained BioBERT models.
