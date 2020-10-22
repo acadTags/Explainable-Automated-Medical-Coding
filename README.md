@@ -18,11 +18,11 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * Python 3 (tested on versions 3.6.* and 3.7.*)
 * Tensorflow 1.* (tested on versions 1.4.1, 1.8.0, and 1.14.0)
 * [Numpy](http://www.numpy.org/)
-* [scikit-learn](http://scikit-learn.github.io/stable)
+* [scikit-learn](http://scikit-learn.github.io/stable) for implementing evaluation metrics
 * [Gensim](https://radimrehurek.com/gensim/) for pre-training word and label embeddings with the word2vec algorithm
-* [NLTK](https://www.nltk.org/)
-* [Spacy](https://spacy.io/)
-* [TFLearn](http://tflearn.org/)
+* [NLTK](https://www.nltk.org/) for tokenisation
+* [Spacy](https://spacy.io/) for customised rule-based sentence parsing
+* [TFLearn](http://tflearn.org/) for sequence padding
 
 # Demo for Quick Start
 * Zero, please ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/).
@@ -86,15 +86,13 @@ def _code_emb_init(self, code_emb, code_list):
         print("final layer: code embedding initialised")
 ```
 
-#### Tips for Training and Testing
-For all the cases above, ```kfold``` can be set to -1 to test with a single fold for quick testing.
+# Key Configurations
 
+#### Tips for Training and Testing
 To view the changing of training loss and validation loss, replacing $PATH-logs$ to a real path.
 ```
 tensorboard --logdir $PATH-logs$
 ```
-
-# Key Configurations
 
 # Dataset and preprocessing
 We used [the MIMIC-III dataset](https://mimic.physionet.org/) with the preprocessing steps from [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) to generate the two dataset settings MIMIC-III and MIMIC-III-50.
