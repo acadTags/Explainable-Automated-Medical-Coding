@@ -2,7 +2,7 @@
 
 This folder stores the checkpoints of the models for reproducibility.
 
-The model checkpoints (available in Onedrive, [link](https://onedrive.live.com/?authkey=%21ACZVuCnEV2zDKow&id=22F95C44F607EC5B%21255141&cid=22F95C44F607EC5B)) include:
+The model checkpoints (available at Onedrive, [link](https://onedrive.live.com/?authkey=%21ACZVuCnEV2zDKow&id=22F95C44F607EC5B%21255141&cid=22F95C44F607EC5B)) include:
 
 *HLAN+LE+sent split trained on MIMIC-III-50: ckpt_dir="../checkpoints/checkpoint_HAN_50_per_label_bs32_sent_split_LE/"
 
