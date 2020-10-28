@@ -279,7 +279,7 @@ def output_to_file(file_name,str):
     with open(file_name, 'w', encoding="utf-8-sig") as f_output:
         f_output.write(str + '\n')
 
-def display_for_qualitative_evaluation(sess,modelToEval,label_sim_mat,label_sub_mat,evalX,evalY,batch_size,vocabulary_index2word,vocabulary_index2word_label,sequence_length,num_sentences,threshold=0.5,use_random_sampling=False, miu_factor=5):
+def display_for_qualitative_evaluation(sess,modelToEval,evalX,evalY,batch_size,vocabulary_index2word,vocabulary_index2word_label,sequence_length,num_sentences,threshold=0.5,use_random_sampling=False, miu_factor=5):
 #miu_factor: the factor to control the magnitude of sentence-weighted word-level attention weights
     prediction_str=""
     n_doc=0
@@ -295,7 +295,7 @@ def display_for_qualitative_evaluation(sess,modelToEval,label_sim_mat,label_sub_
     
     #for start,end in zip(range(0,number_examples,batch_size),range(batch_size,number_examples,batch_size)): # a few samples in the evaluation set can be lost, due to the training and testing with the batch size (this may not be exactly divided).
     for start,end in zip(tqdm(list(range(0,number_examples,batch_size))),list(range(batch_size,number_examples,batch_size))+[number_examples]):
-        feed_dict = {modelToEval.input_x: evalX[start:end], modelToEval.dropout_keep_prob: 1, modelToEval.label_sim_matrix:label_sim_mat, modelToEval.label_sub_matrix:label_sub_mat}
+        feed_dict = {modelToEval.input_x: evalX[start:end], modelToEval.dropout_keep_prob: 1}
         #if (start==0):
         #    print(evalX[start:end])
         feed_dict[modelToEval.input_y_multilabel] = evalY[start:end]
@@ -325,7 +325,7 @@ def display_for_qualitative_evaluation(sess,modelToEval,label_sim_mat,label_sub_
                 n_doc=n_doc+1
     return prediction_str
 
-def display_for_qualitative_evaluation_per_label(sess,modelToEval,label_sim_mat,label_sub_mat,evalX,evalY,batch_size,vocabulary_index2word,vocabulary_index2word_label,sequence_length,per_label_sent_only,num_sentences,threshold=0.5,use_random_sampling=False, miu_factor=5):
+def display_for_qualitative_evaluation_per_label(sess,modelToEval,evalX,evalY,batch_size,vocabulary_index2word,vocabulary_index2word_label,sequence_length,per_label_sent_only,num_sentences,threshold=0.5,use_random_sampling=False, miu_factor=5):
 #miu_factor: the factor to control the magnitude of sentence-weighted word-level attention weights
     prediction_str=""
     n_doc=0
@@ -341,7 +341,7 @@ def display_for_qualitative_evaluation_per_label(sess,modelToEval,label_sim_mat,
             
     #for start,end in zip(range(0,number_examples,batch_size),range(batch_size,number_examples,batch_size)): # a few samples in the evaluation set can be lost, due to the training and testing with the batch size (this may not be exactly divided).
     for start,end in zip(tqdm(list(range(0,number_examples,batch_size))),list(range(batch_size,number_examples,batch_size))+[number_examples]):
-        feed_dict = {modelToEval.input_x: evalX[start:end], modelToEval.dropout_keep_prob: 1, modelToEval.label_sim_matrix:label_sim_mat, modelToEval.label_sub_matrix:label_sub_mat}
+        feed_dict = {modelToEval.input_x: evalX[start:end], modelToEval.dropout_keep_prob: 1}
         #if (start==0):
         #    print(evalX[start:end])
         feed_dict[modelToEval.input_y_multilabel] = evalY[start:end]
