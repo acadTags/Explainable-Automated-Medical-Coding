@@ -79,6 +79,8 @@ python HAN_train.py --dataset mimic3-ds-50 --batch_size 128 --per_label_attentio
 #### Other Configurations
 For all the models above, you can set the learning rate (```--learning_rate```), number of epochs (```--num_epochs```), early stop learning rate (```--early_stop_lr```), and other configurations when you run the command, or set those in the ```*_train.py``` files.
 
+By setting ```running_times``` as ```k```, it will report averaged results and standard deviations with ```k``` runs. For example, ```--running_times 10```.
+
 Check the full list of configurations in ```HAN_train.py```.
 
 To view the changing of training loss and validation loss, replacing $PATH-logs$ to a real path.
