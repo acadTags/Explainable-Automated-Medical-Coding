@@ -151,6 +151,6 @@ For BERT models:
 * Fine-tuning BERT with long documents: We adapted the sliding window approach from [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers) for multi-label classification. The idea is to treat a long document (discharge summaries in this project) as separate documents within the token length limit (sharing the same set of labels) for training. During the testing stage, the BERT model outputs the averaged prediction score of the separated documents. The results of MIMIC-III-50 were based on this adaptation. The results of MIMIC-III were based on first 512 tokens only due to a memory usage above the 60G limit.
 
 # Acknowledgement
-* Our code is based on our previous implenmatation, [Automated-Social-Annotation](https://github.com/acadTags/Automated-Social-Annotation), which is based on [brightmart's implementation](https://github.com/brightmart/text_classification) of TextRNN and Hierarchical Attention Network under the MIT license.
+* Our code is based on our previous implementation, [Automated-Social-Annotation](https://github.com/acadTags/Automated-Social-Annotation), which is based on [brightmart's implementation](https://github.com/brightmart/text_classification) of TextRNN and Hierarchical Attention Network under the MIT license.
 * The MIMIC-III dataset is from https://mimic.physionet.org/ after request and training.
 * Thanks for the kind answers from [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers).
