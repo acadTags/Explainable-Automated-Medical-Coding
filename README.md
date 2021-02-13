@@ -25,7 +25,7 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * [TFLearn](http://tflearn.org/) for sequence padding
 
 # Demo for Quick Start
-* First, please ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/). Place the files ```D_ICD_DIAGNOSES.csv``` and ```D_ICD_PROCEDURES.csv``` under the ```knowledge_bases``` folder.
+* First, ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/). Place the files ```D_ICD_DIAGNOSES.csv``` and ```D_ICD_PROCEDURES.csv``` under the ```knowledge_bases``` folder.
 
 * Second, download the files in ```checkpoints```, ```cache_vocabulary_label_pik```, and ```embeddings``` folders from Onedrive ([link](https://onedrive.live.com/?authkey=%21ACZVuCnEV2zDKow&id=22F95C44F607EC5B%21255141&cid=22F95C44F607EC5B)).
 
