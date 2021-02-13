@@ -21,7 +21,7 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * [scikit-learn](http://scikit-learn.github.io/stable) for implementing evaluation metrics
 * [Gensim](https://radimrehurek.com/gensim/) for pre-training word and label embeddings with the word2vec algorithm
 * [NLTK](https://www.nltk.org/) for tokenisation
-* [Spacy](https://spacy.io/) for customised rule-based sentence parsing
+* [Spacy](https://spacy.io/) 2.3.2 (before 3.x) for customised rule-based sentence parsing
 * [TFLearn](http://tflearn.org/) for sequence padding
 
 # Demo for Quick Start
