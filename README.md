@@ -1,6 +1,6 @@
-# Explanable Automated Medical Coding
+# Explainable Automated Medical Coding
 
-This project proposes an explanable automated medical coding approach based on Hierarchical Label-wise Attention Network and label embedding initialisation. The approach can be applied to multi-label text classification in any domains.
+This project proposes an explainable automated medical coding approach based on Hierarchical Label-wise Attention Network and label embedding initialisation. The approach can be applied to multi-label text classification in any domains.
 
 Detailed explanation of the approach is in 
 * Explainable Automated Coding of Clinical Notes using Hierarchical Label-Wise Attention Networks and Label Embedding Initialisation, submitted to *Journal of Biomedical Informatics*, Oct 2020. [Preprint](https://arxiv.org/abs/2010.15728) is available on ArXiv.
