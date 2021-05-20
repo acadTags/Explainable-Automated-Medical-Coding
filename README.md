@@ -19,7 +19,7 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * Tensorflow 1.* (tested on versions 1.4.1, 1.8.0, and 1.14.0)
 * [Numpy](http://www.numpy.org/)
 * [scikit-learn](http://scikit-learn.github.io/stable) for implementing evaluation metrics
-* [Gensim](https://radimrehurek.com/gensim/) for pre-training word and label embeddings with the word2vec algorithm
+* [Gensim](https://radimrehurek.com/gensim/) 3.* (tested on 3.8.3) for pre-training word and label embeddings with the word2vec algorithm
 * [NLTK](https://www.nltk.org/) for tokenisation
 * [Spacy](https://spacy.io/) 2.3.2 (before 3.x) for customised rule-based sentence parsing
 * [TFLearn](http://tflearn.org/) for sequence padding
