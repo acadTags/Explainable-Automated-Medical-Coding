@@ -16,7 +16,7 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 
 # Requirements
 * Python 3 (tested on versions 3.6.* and 3.7.*)
-* Tensorflow 1.* (tested on versions 1.4.1, 1.8.0, and 1.14.0)
+* Tensorflow 1.* (tested on versions 1.4.1, 1.8.0, 1.14.0, and 1.15.5)
 * [Numpy](http://www.numpy.org/)
 * [scikit-learn](http://scikit-learn.github.io/stable) for implementing evaluation metrics
 * [Gensim](https://radimrehurek.com/gensim/) 3.* (tested on 3.8.3) for pre-training word and label embeddings with the word2vec algorithm
