@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# HierarchicalAttention: 1.Word Encoder. 2.Word Attention. 3.Sentence Encoder 4.Sentence Attention 5.linear classifier. 2017-06-13
+# HierarchicalAttention: 1.Word Encoder. 2.Word Attention. 3.Sentence Encoder 4.Sentence Attention 5.linear classifier.
 import tensorflow as tf
 #import tensorflow.compat.v1 as tf
 #tf.disable_v2_behavior()
@@ -87,8 +87,6 @@ class HAN:
                     # using L_sim only
                     #pair_diff_squared on s_d
                     #self.loss_val = self.loss_multilabel_onto_new_sim_per_batch(self.label_sim_matrix) # j,k per batch - used in the NAACL paper
-                    #self.loss_val = self.loss_multilabel_onto_new_sim_per_doc_tensor(self.label_sim_matrix) # j,k per document - tensor operations - requiring large GPU memory
-                    #self.loss_val = self.loss_multilabel_onto_new_sim_per_doc_not_used(self.label_sim_matrix) # j,k per document - with for loop - requiring large GPU memory 
                     self.loss_val = self.loss_multilabel_onto_new_sim_per_doc(self.label_sim_matrix,dynamic_sem_l2=self.dynamic_sem_l2) # j,k per document - with for loop
                     
                     #pair_diff_abs on rounded s_d
@@ -401,42 +399,6 @@ class HAN:
         #print('document_representation in attention_sentence_level',document_representation.get_shape()) # document_representation in attention_sentence_level (128, 400)
         return document_representation  # shape:[num_classes,None,hidden_size*4]
     
-    #unused, this is considered in the "def attention_sentence_level_per_label(self, hidden_state_sentence)" above.
-    def attention_sentence_level_per_label_sent_only(self, hidden_state_sentence):
-        """
-        input1: hidden_state_sentence: a list,len:num_sentence,element:[None,hidden_size*4]
-        input2: sentence level context vector:[self.hidden_size*2]
-        :return:representation.shape:[None,hidden_size*4]
-        """
-        hidden_state_ = tf.stack(hidden_state_sentence, axis=1)  # shape:[None,num_sentence,hidden_size*4]
-
-        # 0) one layer of feed forward
-        hidden_state_2 = tf.reshape(hidden_state_,
-                                    shape=[-1, self.hidden_size * 4])  # [None*num_sentence,hidden_size*4]
-                       # tf.reshape(tensor,shape,name=None)                            
-        hidden_representation = tf.nn.tanh(tf.matmul(hidden_state_2,
-                                                     self.W_w_attention_sentence) + self.W_b_attention_sentence)  # shape:[None*num_sentence,hidden_size*2]
-        hidden_representation = tf.reshape(hidden_representation, shape=[-1, self.num_sentences,
-                                                                         self.hidden_size * 2])  # [None,num_sentence,hidden_size*2]
-        # attention process:1.get logits for each sentence in the doc.2.get possibility distribution for each sentence in the doc.3.get weighted sum for the sentences as doc representation.
-        # 1) get logits for each word in the sentence.
-        hidden_representation_expanded = tf.expand_dims(hidden_representation,axis=0)
-        context_vector_sentence_per_label_expanded = tf.expand_dims(tf.expand_dims(self.context_vector_sentence_per_label,axis=1),axis=1)
-        hidden_state_context_similiarity = tf.multiply(hidden_representation_expanded,context_vector_sentence_per_label_expanded)  # shape:[num_classes,None,num_sentence,hidden_size*2]
-        attention_logits = tf.reduce_sum(hidden_state_context_similiarity,
-                                         axis=3)  # shape:[num_classes,None,num_sentence]. that is get logit for each num_sentence.
-        # subtract max for numerical stability (softmax is shift invariant). tf.reduce_max:computes the maximum of elements across dimensions of a tensor.
-        attention_logits_max = tf.reduce_max(attention_logits, axis=2, keep_dims=True)  # shape:[num_classes,None,1]
-        # 2) get possibility distribution for each word in the sentence.
-        self.p_attention_sent = tf.nn.softmax(attention_logits - attention_logits_max)  # shape:[num_classes,None,num_sentence]
-        # 3) get weighted hidden state by attention vector(sentence level)
-        p_attention_expanded = tf.expand_dims(self.p_attention_sent, axis=3)  # shape:[num_classes,None,num_sentence,1]
-        document_representation = tf.multiply(p_attention_expanded,
-                                              hidden_state_)  # shape:[num_classes,None,num_sentence,hidden_size*4]<---p_attention_expanded:[num_classes,None,num_sentence,1];hidden_state_:[num_classes,None,num_sentence,hidden_size*4]
-        document_representation = tf.reduce_sum(document_representation, axis=2)  # shape:[num_classes,None,hidden_size*4]
-        print('document_representation in attention_sentence_level',document_representation.get_shape()) # document_representation in attention_sentence_level (128, 400)
-        return document_representation  # shape:[num_classes,None,hidden_size*4]
-        
     def inference(self):
         """main computation graph here: 1.Word Encoder. 2.Word Attention. 3.Sentence Encoder 4.Sentence Attention 5.linear classifier"""
         # 1.Word Encoder
@@ -578,75 +540,6 @@ class HAN:
         #print('logits:',logits)
         return logits
     
-    #unused, this is considered in the "def inference_per_label(self)" above.
-    def inference_per_label_sent_only(self):
-        """main computation graph here: 1.Word Encoder. 2.Word Attention. 3.Sentence Encoder 4.Sentence Attention 5.linear classifier"""
-        # 1.Word Encoder
-        # 1.1 embedding of words
-        #print('before spliting', self.input_x.get_shape()) #shape (?,252)
-        input_x = tf.split(self.input_x, self.num_sentences,axis=1)  # a list. length:num_sentences.each element is:[None,self.sequence_length/num_sentences]
-        #print('before stacking', input_x.get_shape())
-        input_x = tf.stack(input_x, axis=1)  # shape:[None,self.num_sentences,self.sequence_length/num_sentences]
-        #print('after stacking', input_x.get_shape()) # shape (?,4,63)
-        self.embedded_words = tf.nn.embedding_lookup(self.Embedding,input_x)  # [None,num_sentences,sentence_length,embed_size]
-        #print('after embedding_lookup', self.embedded_words.get_shape()) # shape (?,4,63)
-        embedded_words_reshaped = tf.reshape(self.embedded_words, shape=[-1, self.sequence_length,self.embed_size])  # [batch_size*num_sentences,sentence_length,embed_size]
-        #print('after reshaping', embedded_words_reshaped.get_shape()) # shape (?,4,63)
-        
-        #before spliting (?, 252)
-        #after stacking (?, 4, 63)
-        #after embedding_lookup (?, 4, 63, 100)
-        #after reshaping (?, 63, 100) [batch_size*num_sentences,sentence_length,embed_size]
-
-        # 1.2 forward gru
-        hidden_state_forward_list = self.gru_forward_word_level(embedded_words_reshaped)  # a list,length is sentence_length, each element is [batch_size*num_sentences,hidden_size]
-        # 1.3 backward gru
-        hidden_state_backward_list = self.gru_backward_word_level(embedded_words_reshaped)  # a list,length is sentence_length, each element is [batch_size*num_sentences,hidden_size]
-        # 1.4 concat forward hidden state and backward hidden state. hidden_state: a list.len:sentence_length,element:[batch_size*num_sentences,hidden_size*2]
-        self.hidden_state = [tf.concat([h_forward, h_backward], axis=1) for h_forward, h_backward in
-                             zip(hidden_state_forward_list, hidden_state_backward_list)]  # hidden_state:list,len:sentence_length,element:[batch_size*num_sentences,hidden_size*2]
-                             #self.hidden_state is a list.
-                             
-        # 2.Word Attention
-        # for each sentence.
-        sentence_representation = self.attention_word_level(self.hidden_state)  # output:[batch_size*num_sentences,hidden_size*2]
-        sentence_representation = tf.reshape(sentence_representation, shape=[-1, self.num_sentences, self.hidden_size * 2])  # shape:[batch_size,num_sentences,hidden_size*2]
-        #with tf.name_scope("dropout"):#TODO
-        #    sentence_representation = tf.nn.dropout(sentence_representation,keep_prob=self.dropout_keep_prob)  # shape:[None,hidden_size*4]
-
-        # 3.Sentence Encoder
-        # 3.1) forward gru for sentence
-        hidden_state_forward_sentences = self.gru_forward_sentence_level(sentence_representation)  # a list.length is sentence_length, each element is [None,hidden_size*2]
-        # 3.2) backward gru for sentence
-        hidden_state_backward_sentences = self.gru_backward_sentence_level(sentence_representation)  # a list,length is sentence_length, each element is [None,hidden_size*2]
-        # 3.3) concat forward hidden state and backward hidden state
-        # below hidden_state_sentence is a list,len:sentence_length,element:[None,hidden_size*4]
-        self.hidden_state_sentence = [tf.concat([h_forward, h_backward], axis=1) for h_forward, h_backward in zip(hidden_state_forward_sentences, hidden_state_backward_sentences)]
-        #print('self.hidden_state_sentence', len(self.hidden_state_sentence), self.hidden_state_sentence[0].get_shape())
-    
-        # 4.Sentence Attention
-        document_representation = self.attention_sentence_level_per_label_sent_only(self.hidden_state_sentence)  # shape:[num_classes,None,hidden_size*4]
-        with tf.name_scope("dropout"):
-            self.h_drop = tf.nn.dropout(document_representation,keep_prob=self.dropout_keep_prob)  # shape:[num_classes,None,hidden_size*4]
-        # dropout some elements in the document_representation.
-        # 5. logits(use linear layer)and predictions(argmax)
-        with tf.name_scope("output"):
-            h_drop_transposed = tf.transpose(self.h_drop, perm=[1,2,0]) # shape:[None,hidden_size*4,num_classes]
-            logits = tf.multiply(h_drop_transposed, self.W_projection) # shape:[None,hidden_size*4,num_classes]==tf.multiply([None,hidden_size*4,num_classes],[hidden_size*4,num_classes])
-            logits = tf.reduce_sum(logits, axis=1) + self.b_projection # shape:[None,num_classes]
-            #the two lines above calculates a dot product with adding bias between per-label document representations and per-label projection weights.            
-            #logit = tf.matmul(self.h_drop, tf.expand_dims(W_project_unstacked[n],axis=1)) + b_projection_unstacked[n]  # shape:[None,self.num_classes]==tf.matmul([None,hidden_size*2],[hidden_size*2,self.num_classes])
-            #print('self.h_drop:',self.h_drop)
-            #print('tf.expand_dims(W_project_unstacked[n],axis=1)):',tf.expand_dims(W_project_unstacked[n],axis=1))
-            #print('b_projection_unstacked[n]:',b_projection_unstacked[n])
-            #print('logit:',logit)
-            #logits.append(logit)
-            #n=n+1    
-        #logits = tf.stack(logits) #to test
-        #logits = tf.transpose(tf.reduce_sum(logits,axis=2))
-        print('logits:',logits)
-        return logits
-        
     # loss for single-label classification    
     def loss(self, l2_lambda=0.0001):  # 0.001
         with tf.name_scope("loss"):
@@ -764,81 +657,6 @@ class HAN:
             #vec_final=tf.reduce_sum(vec_diff)/2/self.num_classes/self.num_classes # vec_diff is symmetric
             self.sim_loss=(vec_final/self.batch_size)*self.lambda_sim
             
-            self.sub_loss = tf.constant(0., dtype=tf.float32)
-            loss = self.loss_ce + self.l2_losses + self.sim_loss
-        return loss
-    
-    # sim-loss only: j,k per document - tensor operations only - requiring large GPU memory
-    def loss_multilabel_onto_new_sim_per_doc_tensor(self, label_sim_matrix, l2_lambda=0.0001):
-        with tf.name_scope("loss"):
-            # input: `logits` and `labels` must have the same shape `[batch_size, num_classes]`
-            # output: A 1-D `Tensor` of length `batch_size` of the same type as `logits` with the softmax cross entropy loss.
-            # input_y:shape=(?, 1999); logits:shape=(?, 1999)
-            # let `x = logits`, `z = labels`.  The logistic loss is:z * -log(sigmoid(x)) + (1 - z) * -log(1 - sigmoid(x))
-            losses = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.input_y_multilabel,
-                                                             logits=self.logits);  # losses=tf.nn.softmax_cross_entropy_with_logits(labels=self.input__y,logits=self.logits)
-            losses = tf.reduce_sum(losses, axis=1)  # shape=(?,). loss for all data in the batch
-            self.loss_ce = tf.reduce_mean(losses)  # shape=().   average loss in the batch
-            self.l2_losses = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'bias' not in v.name]) * l2_lambda
-            
-            # only considering the similarity of co-occuring label in each labelset y_d. 
-            co_label_mat = tf.matmul(tf.expand_dims(self.input_y_multilabel,2),tf.expand_dims(self.input_y_multilabel,1)) # (128,5196,5196)
-            label_sim_matrix = tf.multiply(co_label_mat,tf.expand_dims(label_sim_matrix,0))
-            # sim-loss after sigmoid L_sim = sim(T_j,T_k)|s_dj-s_dk|^2
-            sig_output = tf.sigmoid(self.logits) # get s_d from l_d
-            vec_diff_squared = tf.square(tf.expand_dims(sig_output,1)-tf.expand_dims(sig_output,2)) # (128,5196,5196)
-            
-            vec_final = tf.reduce_sum(tf.multiply(label_sim_matrix,vec_diff_squared))/2.0
-            self.sim_loss=(vec_final/self.batch_size)*self.lambda_sim
-            
-            self.sub_loss = tf.constant(0., dtype=tf.float32)
-            loss = self.loss_ce + self.l2_losses + self.sim_loss
-        return loss
-    
-    # sim-loss only: j,k per document - with for loop operations - requiring large GPU memory [not used]
-    def loss_multilabel_onto_new_sim_per_doc_not_used(self, label_sim_matrix, l2_lambda=0.0001):
-        with tf.name_scope("loss"):
-            # input: `logits` and `labels` must have the same shape `[batch_size, num_classes]`
-            # output: A 1-D `Tensor` of length `batch_size` of the same type as `logits` with the softmax cross entropy loss.
-            # input_y:shape=(?, 1999); logits:shape=(?, 1999)
-            # let `x = logits`, `z = labels`.  The logistic loss is:z * -log(sigmoid(x)) + (1 - z) * -log(1 - sigmoid(x))
-            losses = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.input_y_multilabel,
-                                                             logits=self.logits);  # losses=tf.nn.softmax_cross_entropy_with_logits(labels=self.input__y,logits=self.logits)
-            # losses=-self.input_y_multilabel*tf.log(self.logits)-(1-self.input_y_multilabel)*tf.log(1-self.logits)
-            #print("sigmoid_cross_entropy_with_logits.losses:", losses)  # shape=(?, 1999).
-            losses = tf.reduce_sum(losses, axis=1)  # shape=(?,). loss for all data in the batch
-            self.loss_ce = tf.reduce_mean(losses)  # shape=().   average loss in the batch
-            self.l2_losses = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables() if 'bias' not in v.name]) * l2_lambda
-            
-            # only considering the similarity of co-occuring label in each labelset y_d.
-            sig_output = tf.sigmoid(self.logits) # get s_d from l_d
-            logit_list=tf.unstack(sig_output)
-            
-            partitions = tf.range(self.batch_size)
-            num_partitions = self.batch_size
-            label_list = tf.dynamic_partition(self.input_y_multilabel, partitions, num_partitions, name='dynamic_unstack')
-            
-            self.sim_loss = 0
-            for i in range(len(logit_list)):
-                logit_vector = tf.expand_dims(logit_list[i],1)
-                logit_list[i] = tf.multiply(logit_list[i],0)
-                #print("logit_vector:",logit_vector)
-                pair_diff = tf.transpose(logit_vector) - logit_vector # pair_diff: {l_di-l_dj}_i,j
-                #print("pair_diff:",pair_diff)
-                pair_diff_squared = tf.square(pair_diff) # pair_diff_squared: {|l_di-l_dj|^2}_i,j
-                #print("pair_diff_squared:",pair_diff_squared)
-                
-                label_vector = label_list[i]
-                label_list[i] = tf.multiply(label_list[i],0)
-                #print("label_vector:",label_vector)
-                label_co_doc = tf.matmul(tf.transpose(label_vector),label_vector)
-                #print("label_co_doc:",label_co_doc)
-                label_co_sim_doc = tf.multiply(label_co_doc,label_sim_matrix)
-                #print("label_co_sim_doc:",label_co_sim_doc)
-                pair_diff_weighted = tf.multiply(label_co_sim_doc,pair_diff_squared)
-                #print("pair_diff_weighted:",pair_diff_weighted)
-                self.sim_loss = self.sim_loss + tf.reduce_sum(pair_diff_weighted)
-            self.sim_loss=(self.sim_loss/self.batch_size)*self.lambda_sim/2.0
             self.sub_loss = tf.constant(0., dtype=tf.float32)
             loss = self.loss_ce + self.l2_losses + self.sim_loss
         return loss

@@ -14,7 +14,11 @@ _PAD="_PAD"
 import random
 from tqdm import tqdm
 
-def get_label_sub_matrix(vocabulary_word2index_label,kb_path,name_scope=''):
+def get_label_sub_matrix(vocabulary_word2index_label,kb_path,name_scope='',zero_init=False):
+    '''
+    Get subsumption matrix of shape num_label*num_label \in {0,1} from label knowledge base.
+    Added zero_init, this is used when L_sub is not needed, i.e. lambda_sub as 0; it initialise a zero matrix with the num_label*num_label shape.
+    '''
     cache_path ='../cache_vocabulary_label_pik/'+ name_scope + "_label_sub.pik"
     print("cache_path:",cache_path,"file_exists:",os.path.exists(cache_path))
     if os.path.exists(cache_path):
@@ -22,31 +26,36 @@ def get_label_sub_matrix(vocabulary_word2index_label,kb_path,name_scope=''):
             result=pickle.load(data_f)
             return result
     else:
-        # load label embedding
-        m = len(vocabulary_word2index_label)
-        result=np.zeros((m,m))
-        print('vocabulary_word2index_label length:',m)
-        with open(kb_path, 'r') as label_pairs:
-            lps = label_pairs.readlines() # lps: label pairs
-        lps = [x.strip() for x in lps]
-        for lp in lps:
-            labels = lp.split(',')
-            if len(labels) == 3 and labels[-1] == 'true' or len(labels) == 2:
-                index_j = vocabulary_word2index_label.get(labels[0].lower(),-1)
-                index_k = vocabulary_word2index_label.get(labels[1].lower(),-1)
-                if index_j != -1 and index_k != -1 and index_j != index_k: # if both of the two labels are in the training data, and they are different from each other (diagonal as 0).
-                    result[index_j,index_k] = 1.
-                    print('matched:', labels[0], str(index_j), labels[1], str(index_k))
-        #save to file system if vocabulary of words is not exists.
-        if not os.path.exists(cache_path):
-            with open(cache_path, 'ab') as data_f:
-                pickle.dump(result, data_f)
+        m = len(vocabulary_word2index_label)      
+        result=np.zeros((m,m))        
+        if not zero_init:
+            # load label embedding
+            result=np.zeros((m,m))
+            print('vocabulary_word2index_label length:',m)
+            with open(kb_path, 'r') as label_pairs:
+                lps = label_pairs.readlines() # lps: label pairs
+            lps = [x.strip() for x in lps]
+            for lp in lps:
+                labels = lp.split(',')
+                if len(labels) == 3 and labels[-1] == 'true' or len(labels) == 2:
+                    index_j = vocabulary_word2index_label.get(labels[0].lower(),-1)
+                    index_k = vocabulary_word2index_label.get(labels[1].lower(),-1)
+                    if index_j != -1 and index_k != -1 and index_j != index_k: # if both of the two labels are in the training data, and they are different from each other (diagonal as 0).
+                        result[index_j,index_k] = 1.
+                        print('matched:', labels[0], str(index_j), labels[1], str(index_k))
+            #save to file system if vocabulary of words is not exists.
+            if not os.path.exists(cache_path):
+                with open(cache_path, 'ab') as data_f:
+                    pickle.dump(result, data_f)
     return result  
     
 # a weighted
-def get_label_sim_matrix(vocabulary_index2word_label,word2vec_model_label_path='../tag-all.bin-300',name_scope='',threshold=0):
-    '''here the word2vec_model should have embedding for all the labels
-        otherwise there will be a KeyError from Gensim'''
+def get_label_sim_matrix(vocabulary_index2word_label,word2vec_model_label_path='../tag-all.bin-300',name_scope='',threshold=0,random_init=False):
+    '''
+    Get similarity matrix of shape num_label*num_label \in (0,1) from label knowledge base.
+    Added random_init, this is used when word2vec_model_label_path is not available; it initialise a random matrix \in (0,1) with the num_label*num_label shape.
+    Also, here the word2vec_model should have embedding for all the labels
+        otherwise there will be a KeyError from Gensim when random_init is False'''
     cache_path ='../cache_vocabulary_label_pik/'+ name_scope + "_label_sim_" + str(threshold) + ".pik"
     print("cache_path:",cache_path,"file_exists:",os.path.exists(cache_path))
     if os.path.exists(cache_path):
@@ -54,36 +63,39 @@ def get_label_sim_matrix(vocabulary_index2word_label,word2vec_model_label_path='
             result=pickle.load(data_f)
             return result
     else:
-        #model=word2vec.load(word2vec_model_label_path,kind='bin') # for danielfrg's word2vec models
-        model = Word2Vec.load(word2vec_model_label_path) # for gensim word2vec models
-
         #m = model.vectors.shape[0]-1 #length # the first one is </s>, to be eliminated
         m = len(vocabulary_index2word_label)
-        result=np.zeros((m,m))
-        count_less_th = 0.0 # count the sim less than the threshold
-        for i in tqdm(range(0,m)):
-            for j in range(0,m):
-                #vector_i=model.get_vector(vocabulary_index2word_label[i]) # for danielfrg's word2vec models
-                #vector_j=model.get_vector(vocabulary_index2word_label[j]) # for danielfrg's word2vec models
-                #print(vocabulary_index2word_label[i],vocabulary_index2word_label[j])
-                vector_i=model.wv[vocabulary_index2word_label[i]] # for gensim word2vec models
-                vector_j=model.wv[vocabulary_index2word_label[j]] # for gensim word2vec models
-                #unit normalise
-                vector_i = vector_i/np.linalg.norm(vector_i)
-                vector_j = vector_j/np.linalg.norm(vector_j)
-                #result[i][j] = np.dot(vector_i,vector_j.T) # can be negative here, result in [-1,1]
-                result[i][j] = (1+np.dot(vector_i,vector_j.T))/2 # result in [0,1]
-                if result[i][j] < threshold:
-                    print('less than 0:',vocabulary_index2word_label[i],vocabulary_index2word_label[j],result[i][j])
-                    count_less_th = count_less_th + 1
-                    result[i][j] = 0
-        print("result",result)
-        print("result",result.shape)
-        print("retained similarities percentage:", str(1-count_less_th/float(m)/float(m)))
-        #save to file system if vocabulary of words is not exists.
-        if not os.path.exists(cache_path):
-            with open(cache_path, 'ab') as data_f:
-                pickle.dump(result, data_f)
+        if random_init:
+            result=np.random.rand(m,m)
+        else:
+            #model=word2vec.load(word2vec_model_label_path,kind='bin') # for danielfrg's word2vec models
+            model = Word2Vec.load(word2vec_model_label_path) # for gensim word2vec models
+
+            result=np.zeros((m,m))
+            count_less_th = 0.0 # count the sim less than the threshold
+            for i in tqdm(range(0,m)):
+                for j in range(0,m):
+                    #vector_i=model.get_vector(vocabulary_index2word_label[i]) # for danielfrg's word2vec models
+                    #vector_j=model.get_vector(vocabulary_index2word_label[j]) # for danielfrg's word2vec models
+                    #print(vocabulary_index2word_label[i],vocabulary_index2word_label[j])
+                    vector_i=model.wv[vocabulary_index2word_label[i]] # for gensim word2vec models
+                    vector_j=model.wv[vocabulary_index2word_label[j]] # for gensim word2vec models
+                    #unit normalise
+                    vector_i = vector_i/np.linalg.norm(vector_i)
+                    vector_j = vector_j/np.linalg.norm(vector_j)
+                    #result[i][j] = np.dot(vector_i,vector_j.T) # can be negative here, result in (-1,1)
+                    result[i][j] = (1+np.dot(vector_i,vector_j.T))/2 # result in (0,1)
+                    if result[i][j] < threshold:
+                        print('less than 0:',vocabulary_index2word_label[i],vocabulary_index2word_label[j],result[i][j])
+                        count_less_th = count_less_th + 1
+                        result[i][j] = 0
+            print("result",result)
+            print("result",result.shape)
+            print("retained similarities percentage:", str(1-count_less_th/float(m)/float(m)))
+            #save to file system if vocabulary of words is not exists.
+            if not os.path.exists(cache_path):
+                with open(cache_path, 'ab') as data_f:
+                    pickle.dump(result, data_f)
     return result
 
 def create_vocabulary(word2vec_model_path,name_scope=''):

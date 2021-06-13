@@ -140,12 +140,12 @@ def main(_):
     '''
     if FLAGS.dataset == "YOUR_DATASET_NAME":
         #set values for 
-        word2vec_model_path
+        word2vec_model_path (Gensim embedding path)
         training_data_path
         validation_data_path (can be an empty path)
         testing_data_path (can be an empty path)
        
-        #the embeddings below need to be pretrained and paths to be added here
+        #the embeddings below need to be pretrained (with Gensim) and paths to be added here
         label_embedding_model_path # for label embedding initialisation (W_projection)
         label_embedding_model_path_per_label  # for label embedding initialisation (per_label context_vectors)
         
@@ -158,17 +158,18 @@ def main(_):
         #FLAGS.batch_size = 128
         FLAGS.sequence_length
         FLAGS.num_sentences
-        FLAGS.ave_labels_per_doc #please pre-calculate this: this only affect the hamming_loss metric
+        FLAGS.ave_labels_per_doc #please pre-calculate this: this only affects the hamming_loss metric
         FLAGS.topk # for precision@k, recall@k, f1@k metrics
         FLAGS.kfold #fold for cross-validation, if 0 then using pre-defined data split, if -1 then using held-out validation
         
         #for semantic-based loss regularisers - in paper Dong et al, 2020, https://core.ac.uk/reader/327124320
         #FLAGS.lambda_sim = 0 # lambda1 - default as 0, i.e. not using the L_sim regulariser
         #FLAGS.lambda_sub = 0 # lambda2 - default as 0, i.e. not using the L_sub regulariser
-        #similarity relations: using self-trained label embedding        
-        label_sim_mat = get_label_sim_matrix(vocabulary_index2word_label,emb_model_path,name_scope=FLAGS.dataset)
-        #subsumption relations: using external knowledge bases
-        label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9');print('using icd9 relations')
+        #keep the lines below unchanged
+        #similarity relations: using self-trained label embedding - here Gensim pretrained label embedding path need to be added to the second argument (doesn't matter if FLAGS.lambda_sim is 0)               
+        label_sim_mat = get_label_sim_matrix(vocabulary_index2word_label,FLAGS.emb_model_path_mimic3_ds,name_scope=FLAGS.dataset,random_init=FLAGS.lambda_sim==0)
+        #subsumption relations: using external knowledge bases - here needs the subsumption relation of labels in a .csv file and its path to be added to the kb_path argument (doesn't matter if FLAGS.lambda_sub is 0)               
+        label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9',zero_init=FLAGS.lambda_sim==0);print('using icd9 relations')
  
     #then change the if below to elif.
     '''
@@ -186,10 +187,10 @@ def main(_):
         vocabulary_word2index_label,vocabulary_index2word_label = create_vocabulary_label_pre_split(training_data_path=training_data_path, validation_data_path=validation_data_path, testing_data_path=testing_data_path, name_scope=FLAGS.dataset + "-HAN") # keep a distinct name scope for each model and each dataset.
         
         #similarity relations: using self-trained label embedding
-        label_sim_mat = get_label_sim_matrix(vocabulary_index2word_label,emb_model_path,name_scope=FLAGS.dataset)
+        label_sim_mat = get_label_sim_matrix(vocabulary_index2word_label,emb_model_path,name_scope=FLAGS.dataset,random_init=FLAGS.lambda_sim==0)
         
         #subsumption relations: using external knowledge bases
-        label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9');print('using icd9 relations')
+        label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9',zero_init=FLAGS.lambda_sub==0);print('using icd9 relations')
         
         #configurations:
         #FLAGS.batch_size = 128
@@ -217,10 +218,10 @@ def main(_):
         vocabulary_word2index_label,vocabulary_index2word_label = create_vocabulary_label_pre_split(training_data_path=training_data_path, validation_data_path=validation_data_path, testing_data_path=testing_data_path, name_scope=FLAGS.dataset + "-HAN") # keep a distinct name scope for each model and each dataset.
         
         #similarity relations: using self-trained label embedding
-        label_sim_mat = get_label_sim_matrix(vocabulary_index2word_label,emb_model_path,name_scope=FLAGS.dataset)
+        label_sim_mat = get_label_sim_matrix(vocabulary_index2word_label,emb_model_path,name_scope=FLAGS.dataset,random_init=FLAGS.lambda_sim==0)
         
         #subsumption relations: using external knowledge bases
-        label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9-50');print('using icd9 relations')
+        label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9-50',zero_init=FLAGS.lambda_sub==0);print('using icd9 relations')
         
         #configurations:
         #FLAGS.batch_size = 128
@@ -246,10 +247,10 @@ def main(_):
         vocabulary_word2index_label,vocabulary_index2word_label = create_vocabulary_label_pre_split(training_data_path=training_data_path, validation_data_path=validation_data_path, testing_data_path=testing_data_path, name_scope=FLAGS.dataset + "-HAN") # keep a distinct name scope for each model and each dataset.
         
         #similarity relations: using self-trained label embedding
-        label_sim_mat = get_label_sim_matrix(vocabulary_index2word_label,emb_model_path,name_scope=FLAGS.dataset)
+        label_sim_mat = get_label_sim_matrix(vocabulary_index2word_label,emb_model_path,name_scope=FLAGS.dataset,random_init=FLAGS.lambda_sim==0)
         
         #subsumption relations: using external knowledge bases
-        label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9-shielding-th50');print('using icd9 relations')
+        label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9-shielding-th50',zero_init=FLAGS.lambda_sub==0);print('using icd9 relations')
         
         #configurations:
         #FLAGS.batch_size = 128
