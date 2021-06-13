@@ -24,6 +24,12 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * [Spacy](https://spacy.io/) 2.3.2 (before 3.x) for customised rule-based sentence parsing
 * [TFLearn](http://tflearn.org/) for sequence padding
 
+# How to Adapt to New Data
+* First, format your data where each line has the format `doc__label__labelA labelB labelC`, for detail see [`datasets`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/tree/master/datasets). The data can be either split to train\[-validation\]-test or without split. 
+* Second, prepare word embeddings and label embeddings using Gensim package, using existing embeddings or those trained from your texts (e.g. using script in [`embeddings`](https://github.com/acadTags/Explainab)le-Automated-Medical-Coding/tree/master/embeddings)).
+* Third, add a new data block (`if FLAGS.dataset == "YOUR_DATASET_NAME":`) with variables specified in `HAN_train.py`.
+* Then, run commands (e.g. `python HLAN.py --dataset YOUR_DATASET_NAME`) with arguments in below.
+
 # Demo for Quick Start
 * First, ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/). Place the files ```D_ICD_DIAGNOSES.csv``` and ```D_ICD_PROCEDURES.csv``` under the ```knowledge_bases``` folder.
 
