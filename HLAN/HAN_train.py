@@ -82,7 +82,8 @@ tf.app.flags.DEFINE_float("keep_label_percent",1,"the percentage of labels in ea
 tf.app.flags.DEFINE_float("valid_portion",0.1,"dev set or test set portion") # this is only valid when kfold is -1, which means we hold out a fixed set for validation. If we set this as 0.1, then there will be 0.81 0.09 0.1 for train-valid-test split (same as the split of 10-fold cross-validation); if we set this as 0.111, then there will be 0.8 0.1 0.1 for train-valid-test split.
 tf.app.flags.DEFINE_float("test_portion",0.1,"held-out evaluation: test set portion")
 tf.app.flags.DEFINE_integer("kfold",10,"k-fold cross-validation") # if k is -1, then not using kfold cross-validation; if k is 0, then using the pre-defined data split (for mimic3, split must be provided, see below).
-tf.app.flags.DEFINE_integer("running_times",1,"running the model for a number of times to get averaged results. This is only applied if using pre-defined data split (kfold=0)")
+tf.app.flags.DEFINE_integer("kfold_to_create_dev",25,"k-fold cross-validation for pre-defined data split without validation data") # default as 25, this is used when FLAGS.kfold is set as 0 but there is no validation split.
+tf.app.flags.DEFINE_integer("running_times",1,"running the model for a number of times to get averaged results. This is only applied if using pre-defined data split (kfold=0).")
 tf.app.flags.DEFINE_boolean("remove_ckpts_before_train",False,"whether to remove checkpoints before training each fold or each running time.") #default False, but need to manually set it as true for training of several folds (kfold > 0) or runs (running_times > 0).
 
 #training, validation and testing with pre-split datasets
@@ -142,8 +143,8 @@ def main(_):
         #set values for 
         word2vec_model_path (Gensim embedding path)
         training_data_path
-        validation_data_path (can be an empty path)
-        testing_data_path (can be an empty path)
+        validation_data_path (can be an empty string, then using partial k-fold cross validation, i.e. k as FLAG.kfold_to_create_dev, but only run FLAGS.running_times)
+        testing_data_path (can be an empty string, then using held-out testing)
        
         #the embeddings below need to be pretrained (with Gensim) and paths to be added here
         label_embedding_model_path # for label embedding initialisation (W_projection)
@@ -162,10 +163,10 @@ def main(_):
         FLAGS.topk # for precision@k, recall@k, f1@k metrics
         FLAGS.kfold #fold for cross-validation, if 0 then using pre-defined data split, if -1 then using held-out validation
         
-        #for semantic-based loss regularisers - in paper Dong et al, 2020, https://core.ac.uk/reader/327124320
+        #keep the lines below unchanged
+        #for semantic-based loss regularisers - in Dong et al, 2020, https://core.ac.uk/reader/327124320
         #FLAGS.lambda_sim = 0 # lambda1 - default as 0, i.e. not using the L_sim regulariser
         #FLAGS.lambda_sub = 0 # lambda2 - default as 0, i.e. not using the L_sub regulariser
-        #keep the lines below unchanged
         #similarity relations: using self-trained label embedding - here Gensim pretrained label embedding path need to be added to the second argument (doesn't matter if FLAGS.lambda_sim is 0)               
         label_sim_mat = get_label_sim_matrix(vocabulary_index2word_label,FLAGS.emb_model_path_mimic3_ds,name_scope=FLAGS.dataset,random_init=FLAGS.lambda_sim==0)
         #subsumption relations: using external knowledge bases - here needs the subsumption relation of labels in a .csv file and its path to be added to the kb_path argument (doesn't matter if FLAGS.lambda_sub is 0)               
@@ -295,16 +296,21 @@ def main(_):
         validlist.append(valid)
         testlist.append(test)
     elif FLAGS.kfold == 0: # pre-defined data split
-        train = load_data_multilabel_pre_split(vocabulary_word2index, vocabulary_word2index_label,keep_label_percent=FLAGS.keep_label_percent,multi_label_flag=FLAGS.multi_label_flag,data_path=training_data_path)
-        valid = load_data_multilabel_pre_split(vocabulary_word2index, vocabulary_word2index_label,keep_label_percent=FLAGS.keep_label_percent,multi_label_flag=FLAGS.multi_label_flag,data_path=validation_data_path)
+        if validation_data_path != '':
+            #if pre-split validation data is available
+            train = load_data_multilabel_pre_split(vocabulary_word2index, vocabulary_word2index_label,keep_label_percent=FLAGS.keep_label_percent,multi_label_flag=FLAGS.multi_label_flag,data_path=training_data_path)
+            valid = load_data_multilabel_pre_split(vocabulary_word2index, vocabulary_word2index_label,keep_label_percent=FLAGS.keep_label_percent,multi_label_flag=FLAGS.multi_label_flag,data_path=validation_data_path)
+            # here train, test are tuples; turn train into trainlist.
+            trainlist, validlist = list(), list()
+            for i in range(FLAGS.running_times):
+                trainlist.append(train)
+                validlist.append(valid)
+        else:
+            #if validation data is not available (only test data available), use k-fold cross-validation: 
+            trainlist,validlist,_ = load_data_multilabel_new_k_fold(vocabulary_word2index, vocabulary_word2index_label,keep_label_percent=FLAGS.keep_label_percent,kfold=FLAGS.kfold_to_create_dev,test_portion=0.0,multi_label_flag=FLAGS.multi_label_flag,training_data_path=training_data_path,shuffle=True) # here do the shuffling and use a large kfold, e.g. default as 25 as in FLAGS.kfold_to_create_dev, and test data portion is 0 (not assign data for testing).
+            trainlist,validlist = trainlist[:FLAGS.running_times],validlist[:FLAGS.running_times] # only run for a certain times as FLAGS.running_times
         test = load_data_multilabel_pre_split(vocabulary_word2index, vocabulary_word2index_label,keep_label_percent=FLAGS.keep_label_percent,multi_label_flag=FLAGS.multi_label_flag,data_path=testing_data_path)
-        # here train, test are tuples; turn train into trainlist.
-        trainlist, validlist, testlist = list(), list(), list()
-        for i in range(FLAGS.running_times):
-            trainlist.append(train)
-            validlist.append(valid)
-            if i==0:
-                testlist.append(test)
+        testlist = [test]
     else: # k-fold
         trainlist, validlist, testlist = load_data_multilabel_new_k_fold(vocabulary_word2index, vocabulary_word2index_label,keep_label_percent=FLAGS.keep_label_percent,kfold=FLAGS.kfold,test_portion=FLAGS.test_portion,multi_label_flag=FLAGS.multi_label_flag,training_data_path=training_data_path)
         # here trainlist, testlist are list of tuples.
