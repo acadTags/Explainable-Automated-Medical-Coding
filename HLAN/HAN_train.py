@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#training the model.
+#code to train, validate, and test the model, with all the evaluation functions applied.
 #process--->1.load data(X:list of lint,y:int). 2.create session. 3.feed data. 4.training (5.validation) ,(6.prediction)
 import tensorflow as tf
 import numpy as np
@@ -40,21 +40,22 @@ import matplotlib.pyplot as plt
 start_time = time.time()
 #configuration
 FLAGS=tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string("dataset","bibsonomy-clean","dataset to chose") # two options: "bibsonomy-clean" and "zhihu-sample"
-#tf.app.flags.DEFINE_string("dataset","zhihu-sample","dataset to chose") # two options: "bibsonomy-clean" and "zhihu-sample"
+tf.app.flags.DEFINE_string("dataset","mimic3-ds-50","dataset to chose")
 
-tf.app.flags.DEFINE_float("learning_rate",0.01,"learning rate") #TODO 0.01
-tf.app.flags.DEFINE_integer("batch_size", 128, "Batch size for training/evaluating.") #批处理的大小 32-->128 #TODO
-tf.app.flags.DEFINE_integer("decay_steps", 6000, "how many steps before decay learning rate.") #6000批处理的大小 32-->128
-tf.app.flags.DEFINE_float("decay_rate", 1.0, "Rate of decay for learning rate.") #0.87一次衰减多少
+tf.app.flags.DEFINE_float("learning_rate",0.01,"learning rate")
+tf.app.flags.DEFINE_integer("batch_size", 128, "Batch size for training/evaluating.")
+tf.app.flags.DEFINE_integer("decay_steps", 6000, "how many steps before decay learning rate.")
+tf.app.flags.DEFINE_float("decay_rate", 1.0, "Rate of decay for learning rate.")
 tf.app.flags.DEFINE_string("ckpt_dir","checkpoint_HAN/","checkpoint location for the model")
 tf.app.flags.DEFINE_integer("sequence_length",300,"max sentence length")
 tf.app.flags.DEFINE_integer("embed_size",100,"embedding size")
 tf.app.flags.DEFINE_boolean("is_training",True,"is training.true:tranining,false:testing/inference")
 tf.app.flags.DEFINE_integer("num_epochs",100,"number of epochs to run.")
-tf.app.flags.DEFINE_integer("validate_every", 1, "Validate every validate_every epochs.") #每10轮做一次验证
-tf.app.flags.DEFINE_integer("validate_step", 1000, "how many step to validate.") #1500做一次检验 TODO [this validation is also for decaying the learning rate based on the evaluation loss]
+tf.app.flags.DEFINE_integer("validate_every", 1, "Validate every validate_every epochs.")
+tf.app.flags.DEFINE_integer("validate_step", 1000, "how many step to validate.") #this validation is also for decaying the learning rate based on the evaluation loss
 tf.app.flags.DEFINE_boolean("use_embedding",True,"whether to use embedding or not.")
+
+#for semantic-based loss regularisers (not used)
 tf.app.flags.DEFINE_float("label_sim_threshold",0,"similarity value below this threshold will be set as 0.")
 tf.app.flags.DEFINE_float("lambda_sim",0,"the lambda for sim-loss.")
 tf.app.flags.DEFINE_float("lambda_sub",0,"the lambda for sub-loss.")
@@ -77,13 +78,6 @@ tf.app.flags.DEFINE_boolean("per_label_sent_only",False,"whether to only use the
 #for simulating missing labels
 tf.app.flags.DEFINE_float("keep_label_percent",1,"the percentage of labels in each instance of the training data to be randomly reserved, the rest labels are dropped to simulate the missing label scenario.")
 
-#for both tuning and final testing (whole data)
-tf.app.flags.DEFINE_string("training_data_path_bib","../datasets/bibsonomy_preprocessed_merged_for_HAN_final.txt","path of training data.") # for bibsonomy dataset
-tf.app.flags.DEFINE_string("training_data_path_zhihu","../datasets/question_train_set_cleaned_150000.txt","path of training data.") # for zhihu dataset
-tf.app.flags.DEFINE_string("training_data_path_sof","../datasets/stacksample_cleaned110000_th_10_final_new_for_HAN_2512.txt","path of training data.") # for sof dataset
-tf.app.flags.DEFINE_string("training_data_path_cua","../datasets/citeulike_a_cleaned_th10_for_HAN.txt","path of training data.") # for cua dataset
-tf.app.flags.DEFINE_string("training_data_path_cut","../datasets/citeulike_t_cleaned_th10_for_HAN.txt","path of training data.") # for cut dataset
-
 #validaition and testing with holdout and k-fold cross-validation
 tf.app.flags.DEFINE_float("valid_portion",0.1,"dev set or test set portion") # this is only valid when kfold is -1, which means we hold out a fixed set for validation. If we set this as 0.1, then there will be 0.81 0.09 0.1 for train-valid-test split (same as the split of 10-fold cross-validation); if we set this as 0.111, then there will be 0.8 0.1 0.1 for train-valid-test split.
 tf.app.flags.DEFINE_float("test_portion",0.1,"held-out evaluation: test set portion")
@@ -102,60 +96,21 @@ tf.app.flags.DEFINE_string("training_data_path_mimic3_ds_50","../datasets/mimici
 tf.app.flags.DEFINE_string("validation_data_path_mimic3_ds_50","../datasets/mimiciii_dev_50_th0.txt","path of validation/dev data.") # for mimic3-ds-50 dataset
 tf.app.flags.DEFINE_string("testing_data_path_mimic3_ds_50","../datasets/mimiciii_test_50_th0.txt","path of testing data.") # for mimic3-ds-50 dataset
 
-#top 50 labels
-tf.app.flags.DEFINE_string("training_data_path_mimic3_ds_charlson_50","../datasets/mimiciii_train_full_top_50_charlson_co_morbidity.txt","path of training data.") # for mimic3-ds-charlson-50 dataset
-tf.app.flags.DEFINE_string("validation_data_path_mimic3_ds_charlson_50","../datasets/mimiciii_dev_full_top_50_charlson_co_morbidity.txt","path of validation/dev data.") # for mimic3-ds-charlson-50 dataset
-tf.app.flags.DEFINE_string("testing_data_path_mimic3_ds_charlson_50","../datasets/mimiciii_test_full_top_50_charlson_co_morbidity.txt","path of testing data.") # for mimic3-ds-charlson-50 dataset
-
 #freq th as 50 (20 labels)
 tf.app.flags.DEFINE_string("training_data_path_mimic3_ds_shielding_th50","../datasets/mimiciii_train_full_th_50_covid_shielding.txt","path of training data.") # for mimic3-ds-shielding-50 dataset
 tf.app.flags.DEFINE_string("validation_data_path_mimic3_ds_shielding_th50","../datasets/mimiciii_dev_full_th_50_covid_shielding.txt","path of validation/dev data.") # for mimic3-ds-shielding-50 dataset
 tf.app.flags.DEFINE_string("testing_data_path_mimic3_ds_shielding_th50","../datasets/mimiciii_test_full_th_50_covid_shielding.txt","path of testing data.") # for mimic3-ds-shielding-50 dataset
 
-#top 50 labels
-tf.app.flags.DEFINE_string("training_data_path_mimic3_ds_shielding_50","../datasets/mimiciii_train_full_top_50_covid_shielding.txt","path of training data.") # for mimic3-ds-shielding-50 dataset
-tf.app.flags.DEFINE_string("validation_data_path_mimic3_ds_shielding_50","../datasets/mimiciii_dev_full_top_50_covid_shielding.txt","path of validation/dev data.") # for mimic3-ds-shielding-50 dataset
-tf.app.flags.DEFINE_string("testing_data_path_mimic3_ds_shielding_50","../datasets/mimiciii_test_full_top_50_covid_shielding.txt","path of testing data.") # for mimic3-ds-shielding-50 dataset
-
-#full 722 labels
-tf.app.flags.DEFINE_string("training_data_path_mimic3_ds_charlson","../datasets/mimiciii_train_full_th0_charlson_co_morbidity.txt","path of training data.") # for mimic3-ds-charlson dataset
-tf.app.flags.DEFINE_string("validation_data_path_mimic3_ds_charlson","../datasets/mimiciii_dev_full_th0_charlson_co_morbidity.txt","path of validation/dev data.") # for mimic3-ds-charlson dataset
-tf.app.flags.DEFINE_string("testing_data_path_mimic3_ds_charlson","../datasets/mimiciii_test_full_th0_charlson_co_morbidity.txt","path of testing data.") # for mimic3-ds-charlson dataset
-
-#full 79 labels
-tf.app.flags.DEFINE_string("training_data_path_mimic3_ds_shielding","../datasets/mimiciii_train_full_th0_covid_shielding.txt","path of training data.") # for mimic3-ds-shielding dataset
-tf.app.flags.DEFINE_string("validation_data_path_mimic3_ds_shielding","../datasets/mimiciii_dev_full_th0_covid_shielding.txt","path of validation/dev data.") # for mimic3-ds-shielding dataset
-tf.app.flags.DEFINE_string("testing_data_path_mimic3_ds_shielding","../datasets/mimiciii_test_full_th0_covid_shielding.txt","path of testing data.") # for mimic3-ds-shielding dataset
-
 tf.app.flags.DEFINE_string("marking_id","","a marking_id (or group_id) for better marking: will show in the output filenames")
 
-tf.app.flags.DEFINE_string("word2vec_model_path_bib","../embeddings/word-bib.bin-100","word2vec's vocabulary and vectors for inputs")
-tf.app.flags.DEFINE_string("word2vec_model_path_zhihu","../embeddings/word150000.bin-100","word2vec's vocabulary and vectors")
-tf.app.flags.DEFINE_string("word2vec_model_path_sof","../embeddings/word-sof-sample-final-new.bin-100","word2vec's vocabulary and vectors")
-tf.app.flags.DEFINE_string("word2vec_model_path_cua","../embeddings/word-citeulike-a.bin-100","word2vec's vocabulary and vectors")
-tf.app.flags.DEFINE_string("word2vec_model_path_cut","../embeddings/word-citeulike-t-th10.bin-100","word2vec's vocabulary and vectors")
 tf.app.flags.DEFINE_string("word2vec_model_path_mimic3_ds","../embeddings/processed_full.w2v","gensim word2vec's vocabulary and vectors") #for both mimic-iii and mimic-iii-50
 tf.app.flags.DEFINE_string("word2vec_model_path_mimic3_ds_50","../embeddings/processed_full.w2v","gensim word2vec's vocabulary and vectors") #for mimic-iii-50
 
-tf.app.flags.DEFINE_string("emb_model_path_bib","../embeddings/tag-all-bib-final.bin-300","pre-trained model from bibsonomy labels")
-tf.app.flags.DEFINE_string("emb_model_path_zhihu","../embeddings/tag_all.bin-300","pre-trained model from zhihu labels")
-tf.app.flags.DEFINE_string("emb_model_path_sof","../embeddings/tag-sof-all.bin-300","pre-trained model from sof labels")
-#tf.app.flags.DEFINE_string("emb_model_path_cua","../embeddings/tag-citeulike-a.bin-300","pre-trained model from cua labels")
-tf.app.flags.DEFINE_string("emb_model_path_cua","../embeddings/tag-citeulike-a-all.bin-300","pre-trained model from cua labels")
-#tf.app.flags.DEFINE_string("emb_model_path_cut","../embeddings/tag-citeulike-t.bin-300","pre-trained model from cut labels")
-tf.app.flags.DEFINE_string("emb_model_path_cut","../embeddings/tag-citeulike-t-all.bin-300","pre-trained model from cut labels")
 tf.app.flags.DEFINE_string("emb_model_path_mimic3_ds","../embeddings/word-mimic3-ds-label.model","pre-trained model from mimic3-ds labels")
 # label emebedding for initialisation, also see def instantiate_weights(self) in HAN_model_dynamic.py
 tf.app.flags.DEFINE_string("emb_model_path_mimic3_ds_init","../embeddings/code-emb-mimic3-tr-400.model","pre-trained model from mimic3-ds labels for label embedding initialisation: final projection matrix, self.W_projection.")
 tf.app.flags.DEFINE_string("emb_model_path_mimic3_ds_init_per_label","../embeddings/code-emb-mimic3-tr-200.model","pre-trained model from mimic3-ds labels for label embedding initialisation: per label context matrices, self.context_vector_word_per_label and self.context_vector_sentence_per_label") # per_label means the per-label Context_vectors.
 
-#tf.app.flags.DEFINE_string("glove_model_path","../embeddings/glove.6B.300d.txt","glove's pre-trained model for labels")
-tf.app.flags.DEFINE_string("kb_dbpedia_path","../knowledge_bases/bibsonomy_skos_withredir_pw_candidts_all_labelled.csv","labels matched to DBpedia skos and redir relations") # for bibsonomy dataset
-tf.app.flags.DEFINE_string("kb_MCG_path","../knowledge_bases/bibsonomy_mcg5_cleaned.csv","labels matched to Microsoft Concept Graph relations") # for bibsonomy dataset
-tf.app.flags.DEFINE_string("kb_zhihu","../knowledge_bases/zhihu_kb.csv","label relations for zhihu data") # for zhihu dataset
-tf.app.flags.DEFINE_string("kb_sof","../knowledge_bases/sof-mcg-kb.csv","label relations for sof data") # for sof dataset
-tf.app.flags.DEFINE_string("kb_cua","../knowledge_bases/citeulike-a-mcg-kb.csv","label relations for cua data") # for cua dataset
-tf.app.flags.DEFINE_string("kb_cut","../knowledge_bases/citeulike-t-mcg-kb.csv","label relations for cut data") # for cut dataset
 tf.app.flags.DEFINE_string("kb_icd9","../knowledge_bases/kb-icd-sub.csv","label relations from icd9, for mimic3") # for zhihu dataset
 
 tf.app.flags.DEFINE_boolean("multi_label_flag",True,"use multi label or single label.")
@@ -175,19 +130,49 @@ tf.app.flags.DEFINE_boolean("gpu",True,"use gpu")
 
 #1.load data(X:list of lint,y:int). 2.create session. 3.feed data. 4.training (5.validation) ,(6.prediction)
 def main(_):
-    #1.load data(X:list of lint,y:int).
-    #if os.path.exists(FLAGS.cache_path):  # 如果文件系统中存在，那么加载故事（词汇表索引化的）
-    #    with open(FLAGS.cache_path, 'r') as data_f:
-    #        trainX, trainY, testX, testY, vocabulary_index2word=pickle.load(data_f)
-    #        vocab_size=len(vocabulary_index2word)
-    #else:
-    
+    #1.load data(X:list of lint,y:int).    
     if not FLAGS.gpu:
         #not using gpu
         os.environ["CUDA_VISIBLE_DEVICES"]="-1"  
         
-    # assign data specific variables:
-    if FLAGS.dataset == "mimic3-ds":
+    # assign data specific variables - this part needs to be customised when you apply your own data, simply create a new if/elif section and assign data path and values for all the variables:
+    #add your customised dataset
+    '''
+    if FLAGS.dataset == "YOUR_DATASET_NAME":
+        #set values for 
+        word2vec_model_path
+        training_data_path
+        validation_data_path (can be an empty path)
+        testing_data_path (can be an empty path)
+       
+        #the embeddings below need to be pretrained and paths to be added here
+        label_embedding_model_path # for label embedding initialisation (W_projection)
+        label_embedding_model_path_per_label  # for label embedding initialisation (per_label context_vectors)
+        
+        #if having pre-split set for evaluation
+        vocabulary_word2index_label,vocabulary_index2word_label = create_vocabulary_label_pre_split(training_data_path=training_data_path, validation_data_path=validation_data_path, testing_data_path=testing_data_path, name_scope=FLAGS.dataset + "-HAN") # keep a distinct name scope for each model and each dataset.
+        #OR, if using k-fold and/or held-out evaluation
+        vocabulary_word2index_label,vocabulary_index2word_label = create_vocabulary_label(training_data_path=training_data_path, name_scope=FLAGS.dataset + "-HAN") # keep a distinct name scope for each model and each dataset.
+        
+        #configurations:
+        #FLAGS.batch_size = 128
+        FLAGS.sequence_length
+        FLAGS.num_sentences
+        FLAGS.ave_labels_per_doc #please pre-calculate this: this only affect the hamming_loss metric
+        FLAGS.topk # for precision@k, recall@k, f1@k metrics
+        FLAGS.kfold #fold for cross-validation, if 0 then using pre-defined data split, if -1 then using held-out validation
+        
+        #for semantic-based loss regularisers - in paper Dong et al, 2020, https://core.ac.uk/reader/327124320
+        #FLAGS.lambda_sim = 0 # lambda1 - default as 0, i.e. not using the L_sim regulariser
+        #FLAGS.lambda_sub = 0 # lambda2 - default as 0, i.e. not using the L_sub regulariser
+        #similarity relations: using self-trained label embedding        
+        label_sim_mat = get_label_sim_matrix(vocabulary_index2word_label,emb_model_path,name_scope=FLAGS.dataset)
+        #subsumption relations: using external knowledge bases
+        label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9');print('using icd9 relations')
+ 
+    #then change the if below to elif.
+    '''
+    if FLAGS.dataset == "mimic3-ds": # MIMIC-III full codes - # change to elif if you add another dataset option above
         word2vec_model_path = FLAGS.word2vec_model_path_mimic3_ds
         #choose the one based on the FLAGS.use_sent_split_padded_version option
         training_data_path = FLAGS.training_data_path_mimic3_ds.replace('_th0','_full_sent_split_th0_for_HAN') if FLAGS.use_sent_split_padded_version else FLAGS.training_data_path_mimic3_ds
@@ -208,15 +193,15 @@ def main(_):
         
         #configurations:
         #FLAGS.batch_size = 128
-        FLAGS.sequence_length = 2500 #ideally 2500
+        FLAGS.sequence_length = 2500 #2500 as in Mullenbach et al., 2018, but can be more if the memory allows
         FLAGS.num_sentences = 100 #length of sentence 25
         FLAGS.ave_labels_per_doc = 15.88 #actually 15.88
         #FLAGS.lambda_sim = 0 # lambda1
         #FLAGS.lambda_sub = 0 # lambda2
         FLAGS.topk = 8 # consistent to Mullenbach et al., 2018
         FLAGS.kfold = 0 #using pre-defined data split
-        
-    elif FLAGS.dataset == "mimic3-ds-50":
+    
+    elif FLAGS.dataset == "mimic3-ds-50": # MIMIC-III top 50 codes
         #word2vec_model_path = FLAGS.word2vec_model_path_mimic3_ds #using the one learned from the full mimic-iii discharge summaries
         word2vec_model_path = FLAGS.word2vec_model_path_mimic3_ds_50
         #choose the one based on the FLAGS.use_sent_split_padded_version option
@@ -239,7 +224,7 @@ def main(_):
         
         #configurations:
         #FLAGS.batch_size = 128
-        FLAGS.sequence_length = 2500 #ideally 2500 for 50 and 3000 for 50 with pheno
+        FLAGS.sequence_length = 2500
         FLAGS.num_sentences = 100 #length of sentence 25 or 30
         FLAGS.ave_labels_per_doc = 5.69
         #FLAGS.lambda_sim = 0 # lambda1
@@ -247,7 +232,7 @@ def main(_):
         FLAGS.topk = 5 # consistent to Mullenbach et al., 2018
         FLAGS.kfold = 0 #using pre-defined data split
     
-    elif FLAGS.dataset == "mimic3-ds-shielding-th50":
+    elif FLAGS.dataset == "mimic3-ds-shielding-th50": # MIMIC-III shielding code, 20 codes (freq above 50)
         word2vec_model_path = FLAGS.word2vec_model_path_mimic3_ds #using the one learned from the full mimic-iii discharge summaries
         #choose the one based on the FLAGS.use_sent_split_padded_version option
         training_data_path = FLAGS.training_data_path_mimic3_ds_shielding_th50.replace('_th_50_covid_shielding','_sent_split_th_50_covid_shielding_for_HAN') if FLAGS.use_sent_split_padded_version else FLAGS.training_data_path_mimic3_ds_shielding_th50
@@ -268,7 +253,7 @@ def main(_):
         
         #configurations:
         #FLAGS.batch_size = 128
-        FLAGS.sequence_length = 2500 #ideally 2500
+        FLAGS.sequence_length = 2500
         FLAGS.num_sentences = 100 #length of sentence 25
         FLAGS.ave_labels_per_doc = 1.08
         #FLAGS.lambda_sim = 0 # lambda1
@@ -1366,7 +1351,7 @@ def get_label_using_logits(logits,vocabulary_index2word_label,top_number=1):
     #    label_list.append(label) #('get_label_using_logits.label_list:', [u'-3423450385060590478', u'2838091149470021485', u'-3174907002942471215', u'-1812694399780494968', u'6815248286057533876'])
     return index_list
 
-#从sigmoid(logits)中取出大于0.5的
+# get those above threshold from the sigmoid(logits) values
 def get_label_using_logits_threshold(logits,threshold=0.5):
     sig = sigmoid_array(logits)
     index_list = np.where(sig > threshold)[0]
@@ -1391,7 +1376,6 @@ def display_results(index_list,vocabulary_index2word_label, for_label=True):
 def sigmoid_array(x):
     return 1 / (1 + np.exp(-x))
 
-#统计预测的准确率
 def calculate_accuracy(labels_predicted,labels,eval_counter): # this should be same as the recall value
     # turn the multihot representation to a list of true labels
     label_nozero=[]
@@ -1455,7 +1439,28 @@ def calculate_hamming_loss(labels_predicted, labels):
     
     return len(label_dict)+len(labels_predicted)-2*count
 
+# calculate and output average ± standard deviation for results among folds or runs
+# input: list_results_run can be a 1D list of a scalar metric of k runs or a 1D list of an array of metrics (e.g. per label) of k runs, where k can be kfold or running_time
+#        with_min_max (optional), default False, by setting this True, further displays the minimum and maximum of all the folds or runs
+# output: a string or a list of strings as mean±std. For 1D list of scalar input, the output is a single string; for a 1D list of one-dimensional np.ndarray input, the output is a list of j elements, where j is the dimension of the second axis (axis=1) of the input.
+def cal_ave_std(list_result_runs, with_min_max=False):
+    #list_result_runs is a list of 0-dimensional or 1-dimensional np.ndarrays #print(type(list_result_runs), list_result_runs[0],type(list_result_runs[0]))
+    if np.ndim(list_result_runs[0]) == 1: # if being at least a list of one-dimensional np.ndarray
+        if with_min_max:
+            return ['%.3f ± %.3f (%.3f - %.3f)' % (results_mean, results_std, results_min, results_max) for results_mean,results_std,results_min, results_max in zip(np.mean(list_result_runs,axis=0), np.std(list_result_runs,axis=0), np.amin(list_result_runs,axis=0), np.amax(list_result_runs,axis=0))]
+        else:
+            return ['%.3f ± %.3f' % (results_mean, results_std) for results_mean,results_std in zip(np.mean(list_result_runs,axis=0), np.std(list_result_runs,axis=0))]
+    else: # if 1D list # if isinstance(list_result_runs[0], float)
+        assert np.ndim(list_result_runs[0]) == 0 # the element in the list is a scalar
+        #print(np.mean(list_result_runs,axis=0), type(np.mean(list_result_runs,axis=0)))
+        if with_min_max:
+            return '%.3f ± %.3f (%.3f - %.3f)' % (np.mean(list_result_runs,axis=0), np.std(list_result_runs,axis=0), np.amin(list_result_runs,axis=0), np.amax(list_result_runs,axis=0))
+        else:
+            return '%.3f ± %.3f' % (np.mean(list_result_runs,axis=0), np.std(list_result_runs,axis=0))
+
+######################################################################################################################            
 # the code below is from https://github.com/jamesmullenbach/caml-mimic/blob/master/evaluation.py under the MIT license
+######################################################################################################################            
 def all_macro(yhat, y):
     return macro_accuracy(yhat, y), macro_precision(yhat, y), macro_recall(yhat, y), macro_f1(yhat, y)
 
@@ -1563,25 +1568,6 @@ def check_code_type(ICD9_code):
     except: # to catch the ValueError: substring not found from code.index('.')
         if len(ICD9_code) == 3 or (ICD9_code[0] == 'E' and len(ICD9_code) == 4): # still diagnostic code
             return 'diag'
-
-# calculate and output average ± standard deviation for results among folds or runs
-# input: list_results_run can be a 1D list of a scalar metric of k runs or a 1D list of an array of metrics (e.g. per label) of k runs, where k can be kfold or running_time
-#        with_min_max (optional), default False, by setting this True, further displays the minimum and maximum of all the folds or runs
-# output: a string or a list of strings as mean±std. For 1D list of scalar input, the output is a single string; for a 1D list of one-dimensional np.ndarray input, the output is a list of j elements, where j is the dimension of the second axis (axis=1) of the input.
-def cal_ave_std(list_result_runs, with_min_max=False):
-    #list_result_runs is a list of 0-dimensional or 1-dimensional np.ndarrays #print(type(list_result_runs), list_result_runs[0],type(list_result_runs[0]))
-    if np.ndim(list_result_runs[0]) == 1: # if being at least a list of one-dimensional np.ndarray
-        if with_min_max:
-            return ['%.3f ± %.3f (%.3f - %.3f)' % (results_mean, results_std, results_min, results_max) for results_mean,results_std,results_min, results_max in zip(np.mean(list_result_runs,axis=0), np.std(list_result_runs,axis=0), np.amin(list_result_runs,axis=0), np.amax(list_result_runs,axis=0))]
-        else:
-            return ['%.3f ± %.3f' % (results_mean, results_std) for results_mean,results_std in zip(np.mean(list_result_runs,axis=0), np.std(list_result_runs,axis=0))]
-    else: # if 1D list # if isinstance(list_result_runs[0], float)
-        assert np.ndim(list_result_runs[0]) == 0 # the element in the list is a scalar
-        #print(np.mean(list_result_runs,axis=0), type(np.mean(list_result_runs,axis=0)))
-        if with_min_max:
-            return '%.3f ± %.3f (%.3f - %.3f)' % (np.mean(list_result_runs,axis=0), np.std(list_result_runs,axis=0), np.amin(list_result_runs,axis=0), np.amax(list_result_runs,axis=0))
-        else:
-            return '%.3f ± %.3f' % (np.mean(list_result_runs,axis=0), np.std(list_result_runs,axis=0))
        
 if __name__ == "__main__":
     tf.app.run()

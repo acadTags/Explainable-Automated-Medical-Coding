@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 # HierarchicalAttention: 1.Word Encoder. 2.Word Attention. 3.Sentence Encoder 4.Sentence Attention 5.linear classifier. 2017-06-13
 import tensorflow as tf
+#import tensorflow.compat.v1 as tf
+#tf.disable_v2_behavior()
 import numpy as np
 import tensorflow.contrib as tf_contrib
 
 class HAN:
-    def __init__(self, num_classes, learning_rate, batch_size, decay_steps, decay_rate, sequence_length, num_sentences, vocab_size, embed_size, hidden_size, is_training, lambda_sim=0.00001, lambda_sub=0, dynamic_sem=False,dynamic_sem_l2=False,per_label_attention=False,per_label_sent_only=False,need_sentence_level_attention_encoder_flag=True, multi_label_flag=True, initializer= tf.random_normal_initializer(stddev=0.1),clip_gradients=5.0):#0.01 # tf.random_normal_initializer(mean=0.0,stddev=0.1,seed=1)
+    def __init__(self, num_classes, learning_rate, batch_size, decay_steps, decay_rate, sequence_length, num_sentences, vocab_size, embed_size, hidden_size, is_training, lambda_sim=0.00001, lambda_sub=0, dynamic_sem=False,dynamic_sem_l2=False,per_label_attention=False,per_label_sent_only=False,need_sentence_level_attention_encoder_flag=True, multi_label_flag=True, initializer= tf.random_normal_initializer(stddev=0.1),clip_gradients=5.0,verbose=True):#0.01 # tf.random_normal_initializer(mean=0.0,stddev=0.1,seed=1)
         """init all hyperparameter here"""
         # set hyperparamter
         self.num_classes = num_classes
@@ -58,9 +60,10 @@ class HAN:
         #print('self.label_sim_matrix:',self.label_sim_matrix)
         #print('self.label_sub_matrix:',self.label_sub_matrix)
         
-        print('display trainable variables')
-        for v in tf.trainable_variables():
-           print(v)
+        if verbose:
+            print('display trainable variables')
+            for v in tf.trainable_variables():
+                print(v)
 
         if self.per_label_attention:
             self.logits = self.inference_per_label() #[None, self.label_size]. main computation graph is here. # this function itself can handle the case of both word and sentence-level per-label attention or sentence-level only per-label attetnion (defined in self.per_label_sent_only).
@@ -128,7 +131,8 @@ class HAN:
         self.validation_loss_per_epoch = tf.summary.scalar("validation_loss_per_epoch",self.loss_val)
         self.writer = tf.summary.FileWriter("./logs")
         
-        print('Model initialisation completed.')
+        if verbose:
+            print('Model initialisation completed.')
     
     # need to check carefully: to avoid non-use weights.
     def instantiate_weights(self): # this is problematic here, the name_scope actually does not affect get_variable.
@@ -394,7 +398,7 @@ class HAN:
         document_representation = tf.multiply(p_attention_expanded,
                                               hidden_state_)  # shape:[num_classes,None,num_sentence,hidden_size*4]<---p_attention_expanded:[num_classes,None,num_sentence,1];hidden_state_:[num_classes,None,num_sentence,hidden_size*4]
         document_representation = tf.reduce_sum(document_representation, axis=2)  # shape:[num_classes,None,hidden_size*4]
-        print('document_representation in attention_sentence_level',document_representation.get_shape()) # document_representation in attention_sentence_level (128, 400)
+        #print('document_representation in attention_sentence_level',document_representation.get_shape()) # document_representation in attention_sentence_level (128, 400)
         return document_representation  # shape:[num_classes,None,hidden_size*4]
     
     #unused, this is considered in the "def attention_sentence_level_per_label(self, hidden_state_sentence)" above.
@@ -536,7 +540,7 @@ class HAN:
             # 3.3) concat forward hidden state and backward hidden state
             # below hidden_state_sentence is a list,len:sentence_length,element:[num_classes,None,hidden_size*4]
             self.hidden_state_sentence = [tf.concat([h_forward, h_backward], axis=2) for h_forward, h_backward in zip(hidden_state_forward_sentences, hidden_state_backward_sentences)]
-            print('self.hidden_state_sentence', len(self.hidden_state_sentence), self.hidden_state_sentence[0].get_shape())
+            #print('self.hidden_state_sentence', len(self.hidden_state_sentence), self.hidden_state_sentence[0].get_shape())
         else: # only the sentence-level attention weights are per-label.
             sentence_representation = self.attention_word_level(self.hidden_state)  # output:[batch_size*num_sentences,hidden_size*2]
             sentence_representation = tf.reshape(sentence_representation, shape=[-1, self.num_sentences, self.hidden_size * 2])  # shape:[batch_size,num_sentences,hidden_size*2]
@@ -549,7 +553,7 @@ class HAN:
             # 3.3) concat forward hidden state and backward hidden state
             # below hidden_state_sentence is a list,len:sentence_length,element:[None,hidden_size*4]
             self.hidden_state_sentence = [tf.concat([h_forward, h_backward], axis=1) for h_forward, h_backward in zip(hidden_state_forward_sentences, hidden_state_backward_sentences)]
-            print('self.hidden_state_sentence', len(self.hidden_state_sentence), self.hidden_state_sentence[0].get_shape())
+            #print('self.hidden_state_sentence', len(self.hidden_state_sentence), self.hidden_state_sentence[0].get_shape())
         
         # 4.Sentence Attention
         document_representation = self.attention_sentence_level_per_label(self.hidden_state_sentence)  # shape:[num_classes,None,hidden_size*4]
@@ -571,7 +575,7 @@ class HAN:
             #n=n+1    
         #logits = tf.stack(logits) #to test
         #logits = tf.transpose(tf.reduce_sum(logits,axis=2))
-        print('logits:',logits)
+        #print('logits:',logits)
         return logits
     
     #unused, this is considered in the "def inference_per_label(self)" above.

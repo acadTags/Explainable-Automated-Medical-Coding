@@ -12,6 +12,7 @@ _GO="_GO"
 _END="_END"
 _PAD="_PAD"
 import random
+from tqdm import tqdm
 
 def get_label_sub_matrix(vocabulary_word2index_label,kb_path,name_scope=''):
     cache_path ='../cache_vocabulary_label_pik/'+ name_scope + "_label_sub.pik"
@@ -44,6 +45,8 @@ def get_label_sub_matrix(vocabulary_word2index_label,kb_path,name_scope=''):
     
 # a weighted
 def get_label_sim_matrix(vocabulary_index2word_label,word2vec_model_label_path='../tag-all.bin-300',name_scope='',threshold=0):
+    '''here the word2vec_model should have embedding for all the labels
+        otherwise there will be a KeyError from Gensim'''
     cache_path ='../cache_vocabulary_label_pik/'+ name_scope + "_label_sim_" + str(threshold) + ".pik"
     print("cache_path:",cache_path,"file_exists:",os.path.exists(cache_path))
     if os.path.exists(cache_path):
@@ -58,7 +61,7 @@ def get_label_sim_matrix(vocabulary_index2word_label,word2vec_model_label_path='
         m = len(vocabulary_index2word_label)
         result=np.zeros((m,m))
         count_less_th = 0.0 # count the sim less than the threshold
-        for i in range(0,m):
+        for i in tqdm(range(0,m)):
             for j in range(0,m):
                 #vector_i=model.get_vector(vocabulary_index2word_label[i]) # for danielfrg's word2vec models
                 #vector_j=model.get_vector(vocabulary_index2word_label[j]) # for danielfrg's word2vec models
@@ -127,6 +130,9 @@ def create_vocabulary_label_for_predict(name_scope=''):
         
 # create vocabulary of labels. label is sorted. 1 is high frequency, 2 is low frequency.
 def create_vocabulary_label_pre_split(training_data_path,validation_data_path,testing_data_path,name_scope='',use_seq2seq=False,label_freq_th=0):
+    '''
+    create vocabulary from data split files - validation data path can be None or empty string if not exists.
+    '''
     cache_path ='../cache_vocabulary_label_pik/'+ name_scope + "_label_vocabulary.pik"
     if os.path.exists(cache_path):
         with open(cache_path, 'rb') as data_f:
@@ -138,7 +144,9 @@ def create_vocabulary_label_pre_split(training_data_path,validation_data_path,te
         vocabulary_index2word_label={}
         vocabulary_label_count_dict={} #{label:count}
         
-        for data_path in [training_data_path,validation_data_path,testing_data_path]:
+        # the list of data split files: not including validation data if it is set as None
+        list_data_split_path = [training_data_path,validation_data_path,testing_data_path] if validation_data_path != None and validation_data_path != '' else [training_data_path,testing_data_path] 
+        for data_path in list_data_split_path:
             print("create_vocabulary_label_sorted.started.data_path:",data_path)
             #zhihu_f_train = codecs.open(data_path, 'r', 'utf8')
             zhihu_f_train = codecs.open(data_path, 'r', 'latin-1')
@@ -357,7 +365,7 @@ def load_data_multilabel_pre_split(vocabulary_word2index,vocabulary_word2index_l
     return data
 
 #loading data with pre-defined split for prediction (i.e. no labels)
-def load_data_multilabel_pre_split_for_pred(vocabulary_word2index,vocabulary_word2index_label,data_path=''):
+def load_data_multilabel_pre_split_for_pred(vocabulary_word2index,vocabulary_word2index_label,data_path='',verbose=True):
     """
     input: a file path
     :return: data. where data=(X, Y). where
@@ -366,8 +374,9 @@ def load_data_multilabel_pre_split_for_pred(vocabulary_word2index,vocabulary_wor
     """
     # 1.load a zhihu data from file
     # example:"w305 w6651 w3974 w1005 w54 w109 w110 w3974 w29 w25 w1513 w3645 w6 w111 __label__-400525901828896492"
-    print("\nload_data.started...")
-    print("load_data_multilabel_new.data_path:",data_path,'\n')
+    if verbose:
+        print("\nload_data.started...")
+        print("load_data_multilabel_new.data_path:",data_path,'\n')
     #zhihu_f = codecs.open(data_path, 'r', 'utf8') #-zhihu4-only-title.txt
     zhihu_f = codecs.open(data_path, 'r', 'latin-1') #-zhihu4-only-title.txt
     lines = zhihu_f.readlines()
@@ -390,7 +399,7 @@ def load_data_multilabel_pre_split_for_pred(vocabulary_word2index,vocabulary_wor
             print('data format wrong: num_parts as %s' % len(parts))
         
         #1) Get indexes of word sequences        
-        if i<1:
+        if i<1 and verbose:
             print("---------- After Preprocessing (sentence parsing, word tokenisation, padding) ----------")
             print(x) #get raw x
         #x_=process_one_sentence_to_get_ui_bi_tri_gram(x)
@@ -398,7 +407,7 @@ def load_data_multilabel_pre_split_for_pred(vocabulary_word2index,vocabulary_wor
         x=x.split(" ")
         x = [vocabulary_word2index.get(e,0) for e in x] #if can't find the word, set the index as '0'.(equal to PAD_ID = 0)
         # see https://stackoverflow.com/questions/11041405/why-dict-getkey-instead-of-dictkey
-        if i<1:
+        if i<1 and verbose:
             print("---------- After changing to vocabulary indexes ----------")
             print(x) #word to index
         
@@ -417,7 +426,8 @@ def load_data_multilabel_pre_split_for_pred(vocabulary_word2index,vocabulary_wor
         X.append(x)
         Y.append(ys_mulithot_list)
     data = (X,Y)
-    print("load_data.ended...")
+    if verbose:
+        print("load_data.ended...")
     return data
     
 #loading data with held-out evaluation    
@@ -535,7 +545,7 @@ def load_data_multilabel_new(vocabulary_word2index,vocabulary_word2index_label,k
     return train, valid, test
 
 # #loading data with spliting training, validation, and testing dataset to k-fold sets
-def load_data_multilabel_new_k_fold(vocabulary_word2index,vocabulary_word2index_label,keep_label_percent=1,kfold=10,test_portion=0.1,max_training_data=1000000,training_data_path='',multi_label_flag=True,use_seq2seq=False,seq2seq_label_length=6):
+def load_data_multilabel_new_k_fold(vocabulary_word2index,vocabulary_word2index_label,keep_label_percent=1,kfold=10,test_portion=0.1,max_training_data=1000000,training_data_path='',multi_label_flag=True,use_seq2seq=False,seq2seq_label_length=6,shuffle=False):
     """
     input: a file path
     :return: train, valid, test. where train is a list of kfold tuples(datasets), separated based on k-fold cross-validation, for example, train[0] is a tuple (trainX, trainY).
@@ -550,6 +560,9 @@ def load_data_multilabel_new_k_fold(vocabulary_word2index,vocabulary_word2index_
     print("load_data_multilabel_new.training_data_path:",training_data_path)
     zhihu_f = codecs.open(training_data_path, 'r', 'utf8') #-zhihu4-only-title.txt
     lines = zhihu_f.readlines()
+    if shuffle:
+        random.seed(1234)
+        random.shuffle(lines)        
     # 2.transform X as indices
     # 3.transform  y as scalar
     X = []

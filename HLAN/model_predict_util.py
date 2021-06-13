@@ -13,7 +13,7 @@ import sys
 
 from HAN_model_dynamic import HAN
 
-from data_util_gensim import load_data_multilabel_pre_split, load_data_multilabel_new,load_data_multilabel_new_k_fold,create_vocabulary,create_vocabulary_label_for_predict,get_label_sim_matrix,get_label_sub_matrix
+from data_util_gensim import load_data_multilabel_pre_split_for_pred,create_vocabulary,create_vocabulary_label_for_predict,get_label_sim_matrix,get_label_sub_matrix
 from tflearn.data_utils import to_categorical, pad_sequences
 from gensim.models import Word2Vec
 import pickle
@@ -28,12 +28,239 @@ import spacy
 from spacy.lang.en import English
 import re 
 
-# for visulisation of the final projection layer and labelwise attention layer with or without label embedding intialisation
+# for visulisation of the final projection layer and labelwise attention layer with or without label embedding intialisation; and for attention visualisation
 from sklearn.manifold import TSNE
 from sklearn.metrics import pairwise
+import matplotlib
 import matplotlib.pyplot as plt
 
-# for attention visualisation: code adapted from https://stackoverflow.com/a/53883859/5319143
+if __name__ == '__main__':
+    pass
+
+# final formatting function for demo
+def formatting(list_of_doc_label_pair_desc,list_of_att_viz_htmls,mark='top50'):
+    return '<p><b>%s</b></p>' % mark + '\n'.join(['\n' + '<p><b>%s</b></p>' % doc_label_pair_info + '\n' + att_viz_html for doc_label_pair_info, att_viz_html in zip(list_of_doc_label_pair_desc,list_of_att_viz_htmls)])
+    #for doc_label_pair_info, att_viz_html in zip(list_of_doc_label_pair_desc,list_of_att_viz_htmls):
+        # if att_viz_html != '':        
+            # print(doc_label_pair_info, att_viz_html[:15] + att_viz_html[-15:]) 
+            # # here just displayed the first and last 15 chars in html
+        # else:
+            # print('*it is time to summarise*:')
+            # print(doc_label_pair_info)
+        
+# final processing function for demo 
+'''input: doc_string, a raw document as string
+          prediction mode, full code prediction as 'full' or top-50 code prediction as 'top50'
+          verbose, whether to verbose the prediction steps and details
+          display_viz, whether to display the attention visualisations here (in the jupyter notebook)
+   output: a tuple of two lists
+        (i)  list_of_doc_label_pair_descriptions (one for each attention visualisation)
+        (ii) list_of_attention_viz_htmls (if empty string then *it is time to summarise*)
+'''
+def code_and_explain(doc_str,mode='top50',verbose=False,display_viz=True):
+    #key model settings
+    to_input=False
+    if mode == 'top50':
+        if '\n' in doc_str:
+            ckpt_dir="../checkpoints/checkpoint_HAN_50_per_label_bs32_sent_split_LE/";dataset = "mimic3-ds-50";batch_size = 32;per_label_attention=True;per_label_sent_only=False;sent_split=True #HLAN trained on MIMIC-III-50 (sent split)
+        else:
+            ckpt_dir="../checkpoints/checkpoint_HAN_50_per_label_bs32_LE/";dataset = "mimic3-ds-50";batch_size = 32;per_label_attention=True;per_label_sent_only=False;sent_split=False #HLAN trained on MIMIC-III-50
+    elif mode == 'full':
+        if '\n' in doc_str:
+            ckpt_dir="../checkpoints/checkpoint_HAN_sent_split_LE/";dataset = "mimic3-ds";batch_size = 128;per_label_attention=False;per_label_sent_only=False;sent_split=False #HAN trained on MIMIC-III (sent split)
+        else:
+            ckpt_dir="../checkpoints/checkpoint_HAN_LE/";dataset = "mimic3-ds";batch_size = 128;per_label_attention=False;per_label_sent_only=False;sent_split=True #HAN trained on MIMIC-III
+    else:
+        print('prediction mode unrecognisable: using top50')
+        ckpt_dir="../checkpoints/checkpoint_HAN_50_per_label_bs32_sent_split_LE/";dataset = "mimic3-ds-50";batch_size = 32;per_label_attention=True;per_label_sent_only=False;sent_split=True #HLAN trained on MIMIC-III-50
+        
+    verbose=False # for a cleaner demo
+    
+    #other settings and hyper-parameters
+    word2vec_model_path = "../embeddings/processed_full.w2v"
+    emb_model_path = "../embeddings/word-mimic3-ds-label.model" #using the one learned from the full label sets of mimic-iii discharge summaries
+    label_embedding_model_path = "../embeddings/code-emb-mimic3-tr-400.model" # for label embedding initialisation (W_projection)
+    label_embedding_model_path_per_label = "../embeddings/code-emb-mimic3-tr-200.model" # for label embedding initialisation (per_label context_vectors)
+    kb_icd9 = "../knowledge_bases/kb-icd-sub.csv"
+
+    gpu=True
+    learning_rate = 0.01
+    decay_steps = 6000
+    decay_rate = 1.0
+    sequence_length = 2500
+    num_sentences = 100
+    embed_size=100
+    hidden_size=100
+    is_training=False
+    lambda_sim=0.0
+    lambda_sub=0.0
+    dynamic_sem=True
+    dynamic_sem_l2=False
+    multi_label_flag=True
+    pred_threshold=0.5
+    use_random_sampling=False
+    miu_factor=5
+    
+    #using gpu or not
+    if not gpu: 
+        os.environ["CUDA_VISIBLE_DEVICES"]="-1"  
+        
+    #load the label list
+    vocabulary_word2index_label,vocabulary_index2word_label = create_vocabulary_label_for_predict(name_scope=dataset + "-HAN") # keep a distinct name scope for each model and each dataset.
+    if vocabulary_word2index_label == None:
+        print('_label_vocabulary.pik file unavailable')
+        sys.exit()
+
+    #get the number of labels
+    num_classes=len(vocabulary_word2index_label)
+
+    #building the vocabulary list from the pre-trained word embeddings
+    vocabulary_word2index, vocabulary_index2word = create_vocabulary(word2vec_model_path,name_scope=dataset + "-HAN")
+    vocab_size = len(vocabulary_word2index)
+
+    #preprocessing
+    #transform the string of the document into a file and preprocess it.
+    preprocess = True
+    filename_to_predict = 'raw dis sum input.txt'
+    output_to_file("../datasets/%s" % filename_to_predict,doc_str)
+        
+    testing_data_path = "../datasets/%s" % filename_to_predict
+    
+    if preprocess:
+        #preprocess data (sentence parsing and tokenisation)
+        #this is only used for a *raw* discharge summary (one each time) and when to_input is set as true.
+        clinical_note_preprocessed_str = preprocessing(raw_clinical_note_file=testing_data_path,sent_parsing=sent_split,num_of_sen=100,num_of_sen_len=25) # tokenisation, padding, lower casing, sentence splitting
+        output_to_file('clinical_note_temp.txt',clinical_note_preprocessed_str) #load the preprocessed data
+        testX, testY = load_data_multilabel_pre_split_for_pred(vocabulary_word2index,vocabulary_word2index_label,data_path='clinical_note_temp.txt',verbose=verbose)
+    else:
+        #this allows processing many preprocessed documents together, each in a row of the file in the testing_data_path
+        testX, testY = load_data_multilabel_pre_split_for_pred(vocabulary_word2index,vocabulary_word2index_label,data_path=testing_data_path,verbose=verbose)
+    
+    #padding to the maximum sequence length
+    testX = pad_sequences(testX, maxlen=sequence_length, value=0.)  # padding to max length
+    
+    #clean previous graph
+    tf.reset_default_graph()
+    
+    #create session.
+    config=tf.ConfigProto()
+    config.gpu_options.allow_growth=False
+    with tf.Session(config=config) as sess:
+        #Instantiate Model
+        model=HAN(num_classes, learning_rate, batch_size, decay_steps, decay_rate,sequence_length,num_sentences,vocab_size,embed_size,hidden_size,is_training,lambda_sim,lambda_sub,dynamic_sem,dynamic_sem_l2,per_label_attention,per_label_sent_only,multi_label_flag=multi_label_flag, verbose=verbose)
+        saver=tf.train.Saver(max_to_keep = 1) # only keep the latest model, here is the best model
+        if os.path.exists(ckpt_dir+"checkpoint"):
+            #print("Restoring Variables from Checkpoint")
+            saver.restore(sess,tf.train.latest_checkpoint(ckpt_dir))
+        else:
+            print("Can't find the checkpoint.going to stop")
+            sys.exit()
+
+        #get prediction results and attention scores
+        if per_label_attention: # to do for per_label_sent_only
+            prediction_str = display_for_qualitative_evaluation_per_label(sess,model,testX,testY,batch_size,vocabulary_index2word,vocabulary_index2word_label,sequence_length,per_label_sent_only,num_sentences=num_sentences,threshold=pred_threshold,use_random_sampling=use_random_sampling,miu_factor=miu_factor) 
+        else:
+            prediction_str = display_for_qualitative_evaluation(sess,model,testX,testY,batch_size,vocabulary_index2word,vocabulary_index2word_label,sequence_length=sequence_length,num_sentences=num_sentences,threshold=pred_threshold,use_random_sampling=use_random_sampling,miu_factor=miu_factor)
+    
+    #visualisation
+    list_doc_label_marks,list_doc_att_viz,dict_doc_pred = viz_attention_scores_new(prediction_str)
+    
+    list_doc_label_pairs = []
+    list_doc_att_viz_html = []
+    if len(list_doc_att_viz) == 0: # if no ICD code assigned for the document.
+        print('No ICD code predicted for this document.')    
+    else:    
+        for ind, (doc_label_mark, doc_att_viz) in enumerate(zip(list_doc_label_marks,list_doc_att_viz)):
+            # retrieve and display ICD-9 codes and descriptions 
+            doc_label_mark_ele_list = doc_label_mark.split('-')
+            if len(doc_label_mark_ele_list)==2: # HAN model, same visualisation for all codes
+                doc_label_mark_without_code = '-'.join(doc_label_mark_ele_list[:3])
+                verbose_doc_code_info = doc_label_mark_without_code
+                #print(doc_label_mark_without_code)
+                #filename = 'att-%s.xlsx' % (doc_label_mark[:len(doc_label_mark)-1])     
+                predictions = dict_doc_pred[doc_label_mark_without_code]
+                predictions = predictions.split('labels:')[0]
+                ICD_9_codes = predictions.split(' ')[1:]
+                verbose_doc_code_info = verbose_doc_code_info + '\n' + 'Predicted code list:'
+                #print('Predicted code list:')
+                for ICD_9_code in ICD_9_codes:
+                    # retrieve the short title and the long title of this ICD-9 code
+                    _, long_tit,code_type = retrieve_icd_descs(ICD_9_code)
+                    verbose_doc_code_info = verbose_doc_code_info + '\n' + code_type + ' code: ' + ICD_9_code + ' ( ' + long_tit + ' )'
+                    #print(code_type,'code:',ICD_9_code,'(',long_tit,')')
+                list_doc_label_pairs.append(verbose_doc_code_info)
+            else: # HLAN or HA-GRU, a different visualisation for each label
+                ICD_9_code = doc_label_mark_ele_list[3] # retrieve the predicted ICD-9 code
+                ICD_9_code = ICD_9_code[:len(ICD_9_code)-1] # drop the trailing colon
+                short_tit, long_tit,code_type = retrieve_icd_descs(ICD_9_code) # retrieve the short title and the long title of this ICD-9 code
+                doc_label_mark_without_code = '-'.join(doc_label_mark_ele_list[:3])
+                verbose_doc_code_info = doc_label_mark_without_code + ' to predict %s code ' % code_type + ICD_9_code + ' (%s)' % (long_tit)
+                #print(doc_label_mark_without_code,'to predict %s code' % code_type,ICD_9_code,'(%s)' % (long_tit))
+                list_doc_label_pairs.append(verbose_doc_code_info)
+                
+                #filename = 'att-%s(%s).xlsx' % (doc_label_mark[:len(doc_label_mark)-1],short_tit) #do not include the colon in the last char
+                #filename = filename.replace('/','').replace('<','').replace('>','') # avoid slash / or <, > signs in the filename
+            
+            # display the visualisation
+            #doc_att_viz.set_properties(**{'font-size': '9pt'})
+            #list_doc_att_viz_html.append(doc_att_viz.render())
+            list_doc_att_viz_html.append(doc_att_viz)
+            #print(type(doc_att_viz.render()))
+            if display_viz:
+                print(verbose_doc_code_info)
+                display(doc_att_viz)
+            
+            # # export the visualisation to an Excel sheet
+            # filename = '..\explanations\\' + filename # put the files under the ..\explanations\ folder.
+            # # reset the font for the Excel sheet
+            # doc_att_viz.set_properties(**{'font-size': '9pt'})\
+                       # .to_excel(filename, engine='openpyxl')
+            # print('Visualisation above saved to %s.' % filename) 
+            
+            # display the prediction when the label-wise visualisations for the document end
+            if ind!=len(list_doc_label_marks)-1:
+                #this is not the last doc label mark
+                if list_doc_label_marks[ind+1][:len(doc_label_mark_without_code)] != doc_label_mark_without_code:                
+                    #the next doc label mark is not the current one
+                    verbose_doc_code_summary = dict_doc_pred[doc_label_mark_without_code]
+                    list_doc_label_pairs.append(verbose_doc_code_summary)
+                    list_doc_att_viz_html.append('')
+                    if display_viz:
+                        print(verbose_doc_code_summary)
+                    #print('Visualisation for %s ended.\n' % doc_label_mark_without_code)
+            else:
+                #this is the last doc label mark
+                verbose_doc_code_summary = dict_doc_pred[doc_label_mark_without_code]
+                list_doc_label_pairs.append(verbose_doc_code_summary)
+                list_doc_att_viz_html.append('')                
+                if display_viz:
+                        print(verbose_doc_code_summary)
+                #print('Visualisation for %s ended.\n' % doc_label_mark_without_code)
+    return list_doc_label_pairs, list_doc_att_viz_html
+
+# for attention visualisation with matplotlib and html: code adapted from https://gist.github.com/ihsgnef/f13c35cd46624c8f458a4d23589ac768
+def colorize(words, color_array):
+    # words is a list of words
+    # color_array is an array of numbers between 0 and 1 of length equal to words
+    #print(words)
+    #print(color_array)
+    
+    # colormaps: https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html#lightness-of-matplotlib-colormaps
+    cmap_sents = matplotlib.cm.get_cmap('Purples')
+    cmap_words = matplotlib.cm.get_cmap('Reds')
+    template = '<span class="barcode"; style="color: {}; background-color: {}">{}</span>'
+    colored_string = ''
+    for ind, (word, color) in enumerate(zip(words, color_array)):
+        font_color = 'white' if color > 0.7 else 'black' #font color as white if too dark background
+        if (color > 0.1 and ind == 0) or (color > 0.1 and ind > 0):
+            # only to highlight those with sent att > 0.1 or word att > 0.1
+            color = matplotlib.colors.rgb2hex(cmap_words(color)[:3]) if ind>0 else matplotlib.colors.rgb2hex(cmap_sents(color)[:3]) # sentence attention weights using cmap_sents, word att weights using cmap_words
+        else:    
+            color = 'white'
+        colored_string += template.format(font_color, color, '&nbsp' + word + '&nbsp')
+    return colored_string
+    
+# for attention visualisation with pandas dataframe and styler: code adapted from https://stackoverflow.com/a/53883859/5319143
 class CharVal(object):
     def __init__(self, char, val):
         self.char = char
@@ -82,14 +309,95 @@ def magnify():
     
 #input the generated doc with attention scores (i.e. the output of display_for_qualitative_evaluation() below)
 #output the visualisation of the doc with respect to each label
-def viz_attention_scores(prediction_str):
+#the new visualisation is based on the function colorize(words, color_array)
+def viz_attention_scores_new(prediction_str):
+    #print('start viz_attention_scores')
     prediction_str = prediction_str.strip('\n')
     docs_att = prediction_str.split('\n\n')
     list_doc_label_marks=[]
     list_doc_att_viz=[]
     prediction=''
     dict_doc_pred = {} # a dictionary of document_label_mark without code i.e. doc-0-0 matching to values as a prediction string for each document 
-    for doc_att in docs_att:
+    for doc_att in tqdm(docs_att):
+        lines_att = doc_att.split('\n')
+        if lines_att[0][:4]=='doc-':
+            # a document, then we start the hierarchical attention visualisation
+            #char_df = pd.DataFrame()
+            doc_att_viz_html_str = ''
+            for ind_line, line_att in enumerate(lines_att): # for every sentence
+                line_att = line_att.strip()
+                words_with_score = line_att.split(' ')
+                if ind_line == 0:
+                    #print(words_with_score[0]) # print the document-label prediction mark, e.g. doc-0-0-33.24
+                    list_doc_label_marks.append(words_with_score[0]) # store the document-label prediction mark to the list
+                    words_with_score = words_with_score[1:] # remove the document-label prediction mark 
+                if len(words_with_score) > 1: # if the sentence is not empty, have at least a word besides the sentence mark.
+                    #char_vals = []
+                    list_words = []
+                    list_att_score_float = []
+                    for i, word_with_score in enumerate(words_with_score): #for every word
+                        ind_left_p = word_with_score.find('(')
+                        ind_right_p = word_with_score.find(')')
+                        if ind_left_p>0 and ind_right_p>0:
+                            if i != len(words_with_score) - 1: # if not the last word， which is a sentence mark
+                                #print(word_with_score)
+                                word = word_with_score[:ind_left_p]
+                                word_att_score = float(word_with_score[ind_left_p+1:ind_right_p])
+                                # create an CharVal object storing the word-attention score pair and append it to the list of CharVal objects
+                                #char_vals = char_vals + [CharVal(word, word_att_score)]
+                                list_words.append(word)
+                                list_att_score_float.append(word_att_score)
+                            else: # a sentence mark, e.g. '/s1(ori-0.0)/'
+                                #the end of this sentence is reached
+                                sent_att_score = float(word_with_score[ind_left_p+1+4:ind_right_p])
+                                # append the sentence mark and sentence attention score pair to the list of CharVal objects
+                                #char_vals = [CharVal('', sent_att_score)] + char_vals
+                                # create a dataframe of CharVals for this whole sentence and append it to the dataframe of all previous sentences.
+                                #char_df = char_df.append(pd.DataFrame(char_vals).transpose(),ignore_index=True).fillna(CharVal('', 0.0))
+                                # about .fillna to address appending df with different columns: https://stackoverflow.com/a/43578742/5319143        
+                                list_words = ['sent%s' % str(ind_line+1)] + list_words
+                                list_att_score_float = [sent_att_score] + list_att_score_float
+                        #else:
+                        #    print(word_with_score, 'at', str(i), 'no parenthesis')
+                    sent_html_str = colorize(list_words,np.array(list_att_score_float))
+                    #print(list_words,list_att_score_float)
+                    doc_att_viz_html_str = doc_att_viz_html_str + '\n' + sent_html_str                
+            # apply coloring values
+            #char_df = char_df.style.applymap(color_charvals_with_sent_score)\
+            #                       .applymap(deep_blue_background_word_whiten)\
+            #                       .set_properties(**{'max-width': '80px', 'font-size': '4pt'})\
+            #                       .set_caption("Hover to magnify")\
+            #                       .set_table_styles(magnify())
+            #char_df = char_df.applymap(limit_width)
+            #char_df = char_df.set_properties(**{'width': '30px'}) #limit the column width
+            #list_doc_att_viz.append(char_df) # store the pandas styler doc att visulisation to the list
+            #char_df#display(char_df)
+            list_doc_att_viz.append(doc_att_viz_html_str)
+        elif lines_att[0][:10]=='prediction':
+            # the prediction
+            prediction = doc_att
+            #print(doc_att)
+            if len(list_doc_label_marks) != 0:
+                doc_label_mark_current = list_doc_label_marks[-1]
+                doc_label_mark_without_code = '-'.join(doc_label_mark_current.split('-')[:3])
+                #if the document's prediction was not stored in the dictionary: store it.
+                if dict_doc_pred.get(doc_label_mark_without_code,None) == None:
+                    dict_doc_pred[doc_label_mark_without_code] = doc_att
+                #print(dict_doc_pred)
+                
+    return list_doc_label_marks,list_doc_att_viz,dict_doc_pred
+    
+#input the generated doc with attention scores (i.e. the output of display_for_qualitative_evaluation() below)
+#output the visualisation of the doc with respect to each label
+def viz_attention_scores(prediction_str):
+    #print('start viz_attention_scores')
+    prediction_str = prediction_str.strip('\n')
+    docs_att = prediction_str.split('\n\n')
+    list_doc_label_marks=[]
+    list_doc_att_viz=[]
+    prediction=''
+    dict_doc_pred = {} # a dictionary of document_label_mark without code i.e. doc-0-0 matching to values as a prediction string for each document 
+    for doc_att in tqdm(docs_att):
         lines_att = doc_att.split('\n')
         if lines_att[0][:4]=='doc-':
             # a document, then we start the hierarchical attention visualisation
@@ -148,7 +456,7 @@ def viz_attention_scores(prediction_str):
     return list_doc_label_marks,list_doc_att_viz,dict_doc_pred
 
 # sentence split, tokenisation, padding (with 100*25)
-# input: raw clinical note, whether to parse sentence, number of sentences to pad, number of tokens in each sentence
+# input: a raw clinical note, whether to parse sentence, number of sentences to pad, number of tokens in each sentence
 # output: a preprossed clinical note
 def preprocessing(raw_clinical_note_file,sent_parsing=True,num_of_sen=100,num_of_sen_len=25):
 
@@ -504,3 +812,4 @@ def sigmoid_array(x):
 #print(retrieve_icd_descs('401.9'))    
 #print(retrieve_icd_descs('96.6'))
 #print(retrieve_icd_descs(''))
+
