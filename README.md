@@ -25,10 +25,10 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * [TFLearn](http://tflearn.org/) for sequence padding
 
 # How to Train on New Data
-* First, format your data where each line has the format `doc__label__labelA labelB labelC`, for detail see [`datasets`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/tree/master/datasets). The data can be either split to train\[-validation\]-test or without split. 
+* First, format your data where each line has the format `doc__label__labelA labelB labelC`, for details see [`datasets`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/tree/master/datasets). The data can be either split to train\[-validation\]-test or without split. 
 * Second, prepare word embeddings and label embeddings using Gensim package, using existing embeddings or those trained from your texts (e.g. using script in [`embeddings`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/tree/master/embeddings)).
 * Third, add a new data block ([`if FLAGS.dataset == "YOUR_DATASET_NAME":`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HAN_train.py#L142)) with variables specified in `HAN_train.py`. Please read closely the example code block and comments provided.
-* Finally, run commands (e.g. `python HLAN.py --dataset YOUR_DATASET_NAME`) with arguments, see detail in [`Training the models`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/README.md#training-the-models).
+* Finally, run commands (e.g. `python HLAN.py --dataset YOUR_DATASET_NAME`) with arguments, see details in [`Training the models`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/README.md#training-the-models).
 
 # Jupyter Notebook Demo with MIMIC-III ICD coding
 * First, ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/). Place the files ```D_ICD_DIAGNOSES.csv``` and ```D_ICD_PROCEDURES.csv``` under the ```knowledge_bases``` folder.
