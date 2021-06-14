@@ -251,7 +251,7 @@ def code_and_explain(doc_str,mode='top50',verbose=False,display_viz=True):
     return list_doc_label_pairs, list_doc_att_viz_html
 
 # for attention visualisation with matplotlib and html: code adapted from https://gist.github.com/ihsgnef/f13c35cd46624c8f458a4d23589ac768
-def colorize(words, color_array):
+def colorize(words, color_array, color_selection=True):
     # words is a list of words
     # color_array is an array of numbers between 0 and 1 of length equal to words
     #print(words)
@@ -264,11 +264,15 @@ def colorize(words, color_array):
     colored_string = ''
     for ind, (word, color) in enumerate(zip(words, color_array)):
         font_color = 'white' if color > 0.7 else 'black' #font color as white if too dark background
-        if (color > 0.1 and ind == 0) or (color > 0.1 and ind > 0):
-            # only to highlight those with sent att > 0.1 or word att > 0.1
+        if color_selection: 
+            if (color > 0.1 and ind == 0) or (color > 0.1 and ind > 0):
+                # only to highlight those with sent att > 0.1 or word att > 0.1
+                color = matplotlib.colors.rgb2hex(cmap_words(color)[:3]) if ind>0 else matplotlib.colors.rgb2hex(cmap_sents(color)[:3]) # sentence attention weights using cmap_sents, word att weights using cmap_words
+            else:    
+                color = 'white'
+        else:
+            #highlight all colors without selection by their strength/weight
             color = matplotlib.colors.rgb2hex(cmap_words(color)[:3]) if ind>0 else matplotlib.colors.rgb2hex(cmap_sents(color)[:3]) # sentence attention weights using cmap_sents, word att weights using cmap_words
-        else:    
-            color = 'white'
         colored_string += template.format(font_color, color, '&nbsp' + word + '&nbsp')
     return colored_string
     
@@ -371,7 +375,7 @@ def viz_attention_scores_new(prediction_str):
                                 list_att_score_float = [sent_att_score] + list_att_score_float
                         #else:
                         #    print(word_with_score, 'at', str(i), 'no parenthesis')
-                    sent_html_str = colorize(list_words,np.array(list_att_score_float))
+                    sent_html_str = colorize(list_words,np.array(list_att_score_float),color_selection=True)
                     #print(list_words,list_att_score_float)
                     doc_att_viz_html_str = doc_att_viz_html_str + '\n' + sent_html_str                
             # apply coloring values
