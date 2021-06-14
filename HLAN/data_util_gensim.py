@@ -392,6 +392,7 @@ def load_data_multilabel_pre_split_for_pred(vocabulary_word2index,vocabulary_wor
     #zhihu_f = codecs.open(data_path, 'r', 'utf8') #-zhihu4-only-title.txt
     zhihu_f = codecs.open(data_path, 'r', 'latin-1') #-zhihu4-only-title.txt
     lines = zhihu_f.readlines()
+    print('lines:',len(lines))
     # 2.transform X as indices
     # 3.transform y as scalar
     X = []

@@ -58,6 +58,8 @@ def formatting(list_of_doc_label_pair_desc,list_of_att_viz_htmls,mark='top50'):
         (ii) list_of_attention_viz_htmls (if empty string then *it is time to summarise*)
 '''
 def code_and_explain(doc_str,mode='top50',verbose=False,display_viz=True):
+    #remove head and trailing spaces and newlines
+    doc_str = doc_str.strip()
     #key model settings
     to_input=False
     if mode == 'top50':
@@ -138,6 +140,7 @@ def code_and_explain(doc_str,mode='top50',verbose=False,display_viz=True):
     
     #padding to the maximum sequence length
     testX = pad_sequences(testX, maxlen=sequence_length, value=0.)  # padding to max length
+    #print(len(testX),len(testY))
     
     #clean previous graph
     tf.reset_default_graph()
@@ -162,6 +165,7 @@ def code_and_explain(doc_str,mode='top50',verbose=False,display_viz=True):
         else:
             prediction_str = display_for_qualitative_evaluation(sess,model,testX,testY,batch_size,vocabulary_index2word,vocabulary_index2word_label,sequence_length=sequence_length,num_sentences=num_sentences,threshold=pred_threshold,use_random_sampling=use_random_sampling,miu_factor=miu_factor)
     
+    print('prediction_str:',prediction_str)
     #visualisation
     list_doc_label_marks,list_doc_att_viz,dict_doc_pred = viz_attention_scores_new(prediction_str)
     
@@ -210,7 +214,7 @@ def code_and_explain(doc_str,mode='top50',verbose=False,display_viz=True):
                 print(verbose_doc_code_info)
                 display(doc_att_viz)
             
-            # # export the visualisation to an Excel sheet
+            # export the visualisation to an Excel sheet
             # filename = '..\explanations\\' + filename # put the files under the ..\explanations\ folder.
             # # reset the font for the Excel sheet
             # doc_att_viz.set_properties(**{'font-size': '9pt'})\
@@ -223,18 +227,26 @@ def code_and_explain(doc_str,mode='top50',verbose=False,display_viz=True):
                 if list_doc_label_marks[ind+1][:len(doc_label_mark_without_code)] != doc_label_mark_without_code:                
                     #the next doc label mark is not the current one
                     verbose_doc_code_summary = dict_doc_pred[doc_label_mark_without_code]
-                    list_doc_label_pairs.append(verbose_doc_code_summary)
-                    list_doc_att_viz_html.append('')
+                    #append the predition summary to the end
+                    #list_doc_label_pairs.append(verbose_doc_code_summary)
+                    #list_doc_att_viz_html.append('')
+                    #insert the predition summary at the beginning
+                    list_doc_label_pairs.insert(0,verbose_doc_code_summary)
+                    list_doc_att_viz_html.insert(0,'')
                     if display_viz:
                         print(verbose_doc_code_summary)
                     #print('Visualisation for %s ended.\n' % doc_label_mark_without_code)
             else:
                 #this is the last doc label mark
                 verbose_doc_code_summary = dict_doc_pred[doc_label_mark_without_code]
-                list_doc_label_pairs.append(verbose_doc_code_summary)
-                list_doc_att_viz_html.append('')                
+                #append the predition summary to the end
+                #list_doc_label_pairs.append(verbose_doc_code_summary)
+                #list_doc_att_viz_html.append('')                
+                #insert the predition summary at the beginning
+                list_doc_label_pairs.insert(0,verbose_doc_code_summary)
+                list_doc_att_viz_html.insert(0,'')
                 if display_viz:
-                        print(verbose_doc_code_summary)
+                    print(verbose_doc_code_summary)
                 #print('Visualisation for %s ended.\n' % doc_label_mark_without_code)
     return list_doc_label_pairs, list_doc_att_viz_html
 
@@ -456,12 +468,25 @@ def viz_attention_scores(prediction_str):
     return list_doc_label_marks,list_doc_att_viz,dict_doc_pred
 
 # sentence split, tokenisation, padding (with 100*25)
-# input: a raw clinical note, whether to parse sentence, number of sentences to pad, number of tokens in each sentence
-# output: a preprossed clinical note
+# input: 
+    #a raw clinical note (with labels specified at the end after __label__), 
+    #whether to parse sentence, 
+    #number of sentences to pad, 
+    #number of tokens in each sentence
+# output: a preprossed clinical note with its labelset if exists in the input
 def preprocessing(raw_clinical_note_file,sent_parsing=True,num_of_sen=100,num_of_sen_len=25):
 
     with open(raw_clinical_note_file, 'r') as file:
         raw_clinical_note = file.read()
+    
+    #separate the label part if any
+    raw_clinical_note_ele = raw_clinical_note.split('__label__')
+    assert len(raw_clinical_note_ele) <= 2 # this value should be either 1 or 2 according to the input format
+    if len(raw_clinical_note_ele) == 2: 
+        raw_clinical_note_labelset = raw_clinical_note_ele[1]
+    else:
+        raw_clinical_note_labelset = ''
+    raw_clinical_note_text = raw_clinical_note_ele[0]
     
     #set the tokenizer: retain only alphanumeric
     tokenizer = RegexpTokenizer(r'\w+') # original
@@ -474,7 +499,7 @@ def preprocessing(raw_clinical_note_file,sent_parsing=True,num_of_sen=100,num_of
         nlp.add_pipe(set_custom_boundaries) #add custom rules: \n\n
         #see https://spacy.io/usage/linguistic-features#sbd
         
-        doc = nlp(raw_clinical_note)
+        doc = nlp(raw_clinical_note_text)
         tokens = []
         for i,sent_tokens in enumerate(doc.sents):
             ##Second: tokenisation same as in the original CAML-MIMIC step for tokens in each sentence
@@ -497,12 +522,16 @@ def preprocessing(raw_clinical_note_file,sent_parsing=True,num_of_sen=100,num_of
                 padded_clinical_note=padded_clinical_note.strip() + " " + pad(sentences[i],num_of_sen_len)
             else:
                 padded_clinical_note=padded_clinical_note.strip() + " " + pad("",num_of_sen_len)
+        #add the labelset if it exists in the input
+        padded_clinical_note = padded_clinical_note + '__label__' + raw_clinical_note_labelset if raw_clinical_note_labelset != '' else padded_clinical_note
         return padded_clinical_note
     else:
         #directly tokenise each word in the document
         #tokenize, lowercase and remove numerics
-        tokens = [t.lower() for t in tokenizer.tokenize(raw_clinical_note) if not t.isnumeric()]
+        tokens = [t.lower() for t in tokenizer.tokenize(raw_clinical_note_text) if not t.isnumeric()]
         preprocessed_clinical_note = '"' + ' '.join(tokens) + '"'
+        #add the labelset if it exists in the input
+        preprocessed_clinical_note = preprocessed_clinical_note + '__label__' + raw_clinical_note_labelset if raw_clinical_note_labelset != '' else preprocessed_clinical_note
         return preprocessed_clinical_note
         
 def set_custom_boundaries(doc):
@@ -585,7 +614,7 @@ def check_code_type(ICD9_code):
 #input: filename and the content (str)
 def output_to_file(file_name,str):
     with open(file_name, 'w', encoding="utf-8-sig") as f_output:
-        f_output.write(str + '\n')
+        f_output.write(str)
 
 def display_for_qualitative_evaluation(sess,modelToEval,evalX,evalY,batch_size,vocabulary_index2word,vocabulary_index2word_label,sequence_length,num_sentences,threshold=0.5,use_random_sampling=False, miu_factor=5):
 #miu_factor: the factor to control the magnitude of sentence-weighted word-level attention weights
