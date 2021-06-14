@@ -30,7 +30,7 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * Third, add a new data block ([`if FLAGS.dataset == "YOUR_DATASET_NAME":`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HAN_train.py#L142)) with variables specified in `HAN_train.py`. Please read closely the example code block and comments provided.
 * Finally, run commands (e.g. `python HLAN.py --dataset YOUR_DATASET_NAME`) with arguments, see details in [`Training the models`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/README.md#training-the-models).
 
-# Jupyter Notebook Demo with MIMIC-III ICD coding
+# Jupyter Notebook Demo with MIMIC-III ICD Coding
 * First, ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/). Place the files ```D_ICD_DIAGNOSES.csv``` and ```D_ICD_PROCEDURES.csv``` under the ```knowledge_bases``` folder.
 
 * Second, download the files in ```checkpoints```, ```cache_vocabulary_label_pik```, and ```embeddings``` folders from Onedrive ([link](https://onedrive.live.com/?authkey=%21ACZVuCnEV2zDKow&id=22F95C44F607EC5B%21255141&cid=22F95C44F607EC5B)).
