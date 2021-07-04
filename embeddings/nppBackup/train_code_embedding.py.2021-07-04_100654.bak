@@ -2,6 +2,8 @@
 #here we used the preprossed training data file train_full.csv from CAML-MIMIC-III
 #see In [28] in https://github.com/jamesmullenbach/caml-mimic/blob/master/notebooks/dataproc_mimic_III.ipynb to generate train_full.csv
 
+import sys
+sys.path.append('../')
 import csv
 from gensim.test.utils import common_texts, get_tmpfile
 from gensim.models import Word2Vec

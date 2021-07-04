@@ -2,8 +2,6 @@
 #here we used the preprocessed discharge summary file disch_full.csv from CAML-MIMIC-III
 #see In [8] in https://github.com/jamesmullenbach/caml-mimic/blob/master/notebooks/dataproc_mimic_III.ipynb to generate disch_full.csv
 
-import sys
-sys.path.append('../')
 import csv
 from gensim.test.utils import common_texts, get_tmpfile
 from gensim.models import Word2Vec
