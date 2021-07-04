@@ -1,9 +1,13 @@
+#train code embedding from the training data ICD-9 label sets in MIMIC-III.
+#here we used the preprossed training data file train_full.csv from CAML-MIMIC-III
+#see In [28] in https://github.com/jamesmullenbach/caml-mimic/blob/master/notebooks/dataproc_mimic_III.ipynb to generate train_full.csv
+
 import sys
 sys.path.append('../')
 import csv
 from gensim.test.utils import common_texts, get_tmpfile
 from gensim.models import Word2Vec
-from constants import MIMIC_3_DIR
+#from constants import MIMIC_3_DIR
 
 #dim = 100
 #dim = 500
@@ -19,6 +23,7 @@ def check(rows):
     for row in rows:
        assert len(row) == 6
 
+MIMIC_3_DIR = '.' # define your train_full.csv file path here
 mimiciii_preprocessed_path = '%s/train_full.csv' % MIMIC_3_DIR #to learn code embedding from training data labels
 
 # initializing the titles and rows list 
