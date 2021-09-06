@@ -5,6 +5,10 @@ This project proposes an explainable automated medical coding approach based on 
 Detailed explanation of the approach is in 
 * Explainable Automated Coding of Clinical Notes using Hierarchical Label-Wise Attention Networks and Label Embedding Initialisation, accepted for *Journal of Biomedical Informatics*, Oct 2020. [Preprint](https://arxiv.org/abs/2010.15728) is available on ArXiv.
 
+A part of the results (especially regarding label embedding initialisation) was orally and virtually presented in [HealTAC 2020](http://healtex.org/healtac-2020/programme/) with [slides](https://drive.google.com/file/d/1XIhuwMuelmsFYvsXYABr7NJjnJTULrez/view) available.
+
+Update (6 Sep 2021): added `--do_hierarchical_evaluation` flag for hierarchical evaluation using [CoPHE](https://github.com/modr00cka/CoPHE/tree/master/scripts).
+
 ## Hierarchical Label-wise Attention Network
 <p align="center">
     <img src="https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HLAN-architecture.PNG" width="600" title="Hierarchical Label-wise Attention Network">
@@ -157,7 +161,7 @@ For BERT models:
 * Fine-tuning BERT with long documents: We adapted the sliding window approach from [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers) for multi-label classification. The idea is to treat a long document (discharge summaries in this project) as separate documents within the token length limit (sharing the same set of labels) for training. During the testing stage, the BERT model outputs the averaged prediction score of the separated documents. The results of MIMIC-III-50 were based on this adaptation. The results of MIMIC-III were based on first 512 tokens only due to a memory usage above the 60G limit.
 
 # Acknowledgement
-* A part of the results (especially regarding label embedding initialisation) was orally and virtually presented in [HealTAC 2020](http://healtex.org/healtac-2020/programme/) with [slides](https://drive.google.com/file/d/1XIhuwMuelmsFYvsXYABr7NJjnJTULrez/view) available.
 * Our code is based on our previous implementation, [Automated-Social-Annotation](https://github.com/acadTags/Automated-Social-Annotation), which is based on [brightmart's implementation](https://github.com/brightmart/text_classification) of TextRNN and Hierarchical Attention Network under the MIT license.
 * The MIMIC-III dataset is from https://mimic.physionet.org/ after request and training.
+* The hierarchical evaluation is based on [CoPHE](https://github.com/modr00cka/CoPHE/tree/master/scripts), consented by the author modr00cka.
 * Thanks for the kind answers from [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers).
