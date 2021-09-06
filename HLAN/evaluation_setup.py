@@ -1,3 +1,7 @@
+#code adapted from modr00cka (Falis Matus), consented for use
+#see https://github.com/modr00cka/CoPHE
+#last edit: 6 Sep 2021
+
 import numpy as np
 from scipy.sparse import csr_matrix
 import json
