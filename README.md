@@ -43,8 +43,8 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * ```./HLAN/HAN_train.py``` contains code for configuration and training
 * ```./HLAN/HAN_model.py``` contains the computational graph, loss function and optimisation
 * ```./HLAN/data_util_gensim.py``` contains code for input and target generation
-* ```./HLAN/demo_HLAN_viz.ipynb``` and ```./HLAN/model_predict_util.py``` contains code for demo based on Jupyter Notebook and the helper functions
-* ```./HLAN/evaluation_setup.py``` and ```./HLAN/multi_level_eval.py``` contains code from [CoPHE](https://github.com/modr00cka/CoPHE) for hierarchical evaluation of multi-label classification.
+* ```./HLAN/demo_HLAN_viz.ipynb``` and ```./HLAN/model_predict_util.py``` contains code for the demo based on Jupyter Notebook and the helper functions
+* ```./HLAN/evaluation_setup.py``` and ```./HLAN/multi_level_eval.py``` contains code from [CoPHE](https://github.com/modr00cka/CoPHE) for the hierarchical evaluation of multi-label classification
 * ```./embeddings``` contains self-trained word2vec embeddings: word embeddings and label embeddings
 * ```./datasets``` contains the datasets used
 * ```./checkpoints``` contains the checkpoints of HLAN, HA-GRU, and HAN models trained from the author on the MIMIC-III datasets
