@@ -25,6 +25,10 @@ from sklearn.manifold import TSNE
 from sklearn.metrics import pairwise
 import matplotlib.pyplot as plt
 
+# for hierarchical evaluation
+from evaluation_setup import load_translation_dict_from_icd9
+from multi_level_eval import hierarchical_evaluation
+
 #tf.reset_default_graph()
 
 # Setting the seed for numpy-generated random numbers
@@ -85,6 +89,7 @@ tf.app.flags.DEFINE_integer("kfold",10,"k-fold cross-validation") # if k is -1, 
 tf.app.flags.DEFINE_integer("kfold_to_create_dev",25,"k-fold cross-validation for pre-defined data split without validation data") # default as 25, this is used when FLAGS.kfold is set as 0 but there is no validation split.
 tf.app.flags.DEFINE_integer("running_times",1,"running the model for a number of times to get averaged results. This is only applied if using pre-defined data split (kfold=0).")
 tf.app.flags.DEFINE_boolean("remove_ckpts_before_train",False,"whether to remove checkpoints before training each fold or each running time.") #default False, but need to manually set it as true for training of several folds (kfold > 0) or runs (running_times > 0).
+tf.app.flags.DEFINE_boolean("do_hierarchical_evaluation",False,"whether to carry out hierarchical evaluation.") #default True                                                                                                                             
 
 #training, validation and testing with pre-split datasets
 tf.app.flags.DEFINE_boolean("use_sent_split_padded_version",False,"whether to use the sentenece splitted and padded version [MIMIC-III-related datasets only].") #whether to use the sentenece splitted and padded version. If set as true, HAN will deal with *real* sentences instead of fixed-length text chunks. This is used for MIMIC-III-related datasets. The sentence splitting was using a rule-based algorithm in the Spacy package with adding a double newline rule '\n\n' as another sentence boundary. The number of tokens in each sentence was padded to 25, and the number of sentences was padded to 100.
@@ -113,6 +118,7 @@ tf.app.flags.DEFINE_string("emb_model_path_mimic3_ds_init","../embeddings/code-e
 tf.app.flags.DEFINE_string("emb_model_path_mimic3_ds_init_per_label","../embeddings/code-emb-mimic3-tr-200.model","pre-trained model from mimic3-ds labels for label embedding initialisation: per label context matrices, self.context_vector_word_per_label and self.context_vector_sentence_per_label") # per_label means the per-label Context_vectors.
 
 tf.app.flags.DEFINE_string("kb_icd9","../knowledge_bases/kb-icd-sub.csv","label relations from icd9, for mimic3") # for zhihu dataset
+tf.app.flags.DEFINE_string("kb_icd9_he","../knowledge_bases/icd9_graph_desc.json","label relations from icd9, for mimic3 - hierarchical evaluation") # for mimic3 dataset, hierarchical evaluation
 
 tf.app.flags.DEFINE_boolean("multi_label_flag",True,"use multi label or single label.")
 tf.app.flags.DEFINE_integer("num_sentences", 10, "number of sentences in the document")
@@ -193,6 +199,10 @@ def main(_):
         #subsumption relations: using external knowledge bases
         label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9',zero_init=FLAGS.lambda_sub==0);print('using icd9 relations')
         
+        #for hierarchical evaluation
+        if FLAGS.do_hierarchical_evaluation:
+            translation_dict_icd9 = load_translation_dict_from_icd9(FLAGS.kb_icd9_he)
+        
         #configurations:
         #FLAGS.batch_size = 128
         FLAGS.sequence_length = 2500 #2500 as in Mullenbach et al., 2018, but can be more if the memory allows
@@ -224,6 +234,10 @@ def main(_):
         #subsumption relations: using external knowledge bases
         label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9-50',zero_init=FLAGS.lambda_sub==0);print('using icd9 relations')
         
+        #for hierarchical evaluation
+        if FLAGS.do_hierarchical_evaluation:
+            translation_dict_icd9 = load_translation_dict_from_icd9(FLAGS.kb_icd9_he)
+            
         #configurations:
         #FLAGS.batch_size = 128
         FLAGS.sequence_length = 2500
@@ -253,6 +267,10 @@ def main(_):
         #subsumption relations: using external knowledge bases
         label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9-shielding-th50',zero_init=FLAGS.lambda_sub==0);print('using icd9 relations')
         
+        #for hierarchical evaluation
+        if FLAGS.do_hierarchical_evaluation:
+            translation_dict_icd9 = load_translation_dict_from_icd9(FLAGS.kb_icd9_he)
+            
         #configurations:
         #FLAGS.batch_size = 128
         FLAGS.sequence_length = 2500
@@ -272,7 +290,7 @@ def main(_):
     filename_common_prefix = 'l2 ' + str(FLAGS.lambda_sim) + " l3 " + str(FLAGS.lambda_sub) + ' b_s' + str(FLAGS.batch_size) + ' pred_th' + str(FLAGS.pred_threshold) + ' gp_id' + str(FLAGS.marking_id)
     
     num_classes=len(vocabulary_word2index_label)
-    print(vocabulary_index2word_label[0],vocabulary_index2word_label[1])
+    print('display the first two labels:',vocabulary_index2word_label[0],vocabulary_index2word_label[1])
     trainX, trainY, testX, testY = None, None, None, None
     #building the vocabulary list from the pre-trained word embeddings
     vocabulary_word2index, vocabulary_index2word = create_vocabulary(word2vec_model_path,name_scope=FLAGS.dataset + "-HAN")
@@ -331,9 +349,11 @@ def main(_):
         
         num_runs = len(trainlist)
         #validation results variables
-        valid_loss, valid_acc_th,valid_prec_th,valid_rec_th,valid_fmeasure_th,valid_hamming_loss_th,valid_prec_per_label_th,valid_rec_per_label_th,valid_f1_per_label_th,valid_acc_topk,valid_prec_topk,valid_rec_topk,valid_fmeasure_topk,valid_hamming_loss_topk,valid_prec_per_label_topk,valid_rec_per_label_topk,valid_f1_per_label_topk,valid_macro_accuracy, valid_macro_precision, valid_macro_recall, valid_macro_f1, valid_macro_auc, valid_micro_accuracy, valid_micro_precision, valid_micro_recall, valid_micro_f1, valid_micro_auc, valid_micro_precision_diag, valid_micro_recall_diag, valid_micro_f1_diag, valid_micro_precision_proc, valid_micro_recall_proc, valid_micro_f1_proc = [0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs # initialise the testing result lists
+        valid_loss, valid_acc_th,valid_prec_th,valid_rec_th,valid_fmeasure_th,valid_hamming_loss_th,valid_prec_per_label_th,valid_rec_per_label_th,valid_f1_per_label_th,valid_acc_topk,valid_prec_topk,valid_rec_topk,valid_fmeasure_topk,valid_hamming_loss_topk,valid_prec_per_label_topk,valid_rec_per_label_topk,valid_f1_per_label_topk,valid_macro_accuracy, valid_macro_precision, valid_macro_recall, valid_macro_f1, valid_macro_auc, valid_micro_accuracy, valid_micro_precision, valid_micro_recall, valid_micro_f1, valid_micro_auc, valid_micro_precision_diag, valid_micro_recall_diag, valid_micro_f1_diag, valid_micro_precision_proc, valid_micro_recall_proc, valid_micro_f1_proc,valid_he_micro_prec, valid_he_micro_rec, valid_he_micro_f1 = [0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs # initialise the testing result lists
+        valid_he_list_result_by_layer = []
         
-        test_loss, test_acc_th,test_prec_th,test_rec_th,test_fmeasure_th,test_hamming_loss_th,test_prec_per_label_th,test_rec_per_label_th,test_f1_per_label_th,test_acc_topk,test_prec_topk,test_rec_topk,test_fmeasure_topk,test_hamming_loss_topk,test_prec_per_label_topk,test_rec_per_label_topk,test_f1_per_label_topk,test_macro_accuracy, test_macro_precision, test_macro_recall, test_macro_f1, test_macro_auc, test_micro_accuracy, test_micro_precision, test_micro_recall, test_micro_f1, test_micro_auc, test_micro_precision_diag, test_micro_recall_diag, test_micro_f1_diag, test_micro_precision_proc, test_micro_recall_proc, test_micro_f1_proc = [0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs # initialise the testing result lists
+        test_loss, test_acc_th,test_prec_th,test_rec_th,test_fmeasure_th,test_hamming_loss_th,test_prec_per_label_th,test_rec_per_label_th,test_f1_per_label_th,test_acc_topk,test_prec_topk,test_rec_topk,test_fmeasure_topk,test_hamming_loss_topk,test_prec_per_label_topk,test_rec_per_label_topk,test_f1_per_label_topk,test_macro_accuracy, test_macro_precision, test_macro_recall, test_macro_f1, test_macro_auc, test_micro_accuracy, test_micro_precision, test_micro_recall, test_micro_f1, test_micro_auc, test_micro_precision_diag, test_micro_recall_diag, test_micro_f1_diag, test_micro_precision_proc, test_micro_recall_proc, test_micro_f1_proc,test_he_micro_prec,test_he_micro_rec,test_he_micro_f1 = [0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs,[0]*num_runs # initialise the testing result lists
+        test_he_list_result_by_layer = []                                 
         #outputs
         output_valid, output_test = "", ""
         
@@ -445,7 +465,7 @@ def main(_):
                             print(epoch, FLAGS.validate_step, FLAGS.batch_size) # here shows only when start being 0, the program goes under this condition. This is okay as our dataset is not too large.
                             #eval_loss, eval_acc = do_eval(sess, model, testX, testY, batch_size,vocabulary_index2word_label)
                             #eval_loss, eval_acc,eval_prec,eval_rec,eval_fmeasure = do_eval_multilabel(sess, model, tag_pair_matrix, label_sim_matrix, testX, testY, batch_size,vocabulary_index2word_label,epoch,number_labels_to_predict=11)
-                            eval_loss,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,micro_f1,_,_,_,_,_,_,_ = do_eval_multilabel_threshold(sess,model,label_sim_mat,label_sub_mat,validX,validY,batch_size,vocabulary_index2word,vocabulary_index2word_label,epoch,threshold=FLAGS.pred_threshold,display_results_bool=False,hamming_q=FLAGS.ave_labels_per_doc,top_number=FLAGS.topk,record_to_tensorboard=False)
+                            eval_loss,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,micro_f1,_,_,_,_,_,_,_,_,_,_,_ = do_eval_multilabel_threshold(sess,model,label_sim_mat,label_sub_mat,validX,validY,batch_size,vocabulary_index2word,vocabulary_index2word_label,epoch,threshold=FLAGS.pred_threshold,display_results_bool=False,hamming_q=FLAGS.ave_labels_per_doc,top_number=FLAGS.topk,record_to_tensorboard=False)
                             #print("validation.part. previous_eval_loss:", previous_eval_loss,";current_eval_loss:", eval_loss)
                             print("validation.part. previous_micro_f1:", previous_micro_f1,";current_micro_f1:", micro_f1)
                             #print("validation.part. previous_eval_fmeasure:", previous_eval_fmeasure,";current_eval_fmeasure:", eval_fmeasure)
@@ -484,7 +504,7 @@ def main(_):
                         display_results_bool=True
                     else:
                         display_results_bool=False
-                    eval_loss,eval_acc_th,eval_prec_th,eval_rec_th,eval_fmeasure_th,eval_hamming_loss_th,eval_prec_per_label_th,eval_rec_per_label_th,eval_f1_per_label_th,eval_acc_topk,eval_prec_topk,eval_rec_topk,eval_fmeasure_topk,eval_hamming_loss_topk,eval_prec_per_label_topk,eval_rec_per_label_topk,eval_f1_per_label_topk,macro_accuracy, macro_precision, macro_recall, macro_f1, macro_auc, micro_accuracy, micro_precision, micro_recall, micro_f1, micro_auc,_,_,_,_,_,_ = do_eval_multilabel_threshold(sess,model,label_sim_mat,label_sub_mat,validX,validY,batch_size,vocabulary_index2word,vocabulary_index2word_label,epoch,threshold=FLAGS.pred_threshold,display_results_bool=display_results_bool,hamming_q=FLAGS.ave_labels_per_doc,top_number=FLAGS.topk,record_to_tensorboard=True)
+                    eval_loss,eval_acc_th,eval_prec_th,eval_rec_th,eval_fmeasure_th,eval_hamming_loss_th,eval_prec_per_label_th,eval_rec_per_label_th,eval_f1_per_label_th,eval_acc_topk,eval_prec_topk,eval_rec_topk,eval_fmeasure_topk,eval_hamming_loss_topk,eval_prec_per_label_topk,eval_rec_per_label_topk,eval_f1_per_label_topk,macro_accuracy, macro_precision, macro_recall, macro_f1, macro_auc, micro_accuracy, micro_precision, micro_recall, micro_f1, micro_auc,_,_,_,_,_,_,_,_,_,_ = do_eval_multilabel_threshold(sess,model,label_sim_mat,label_sub_mat,validX,validY,batch_size,vocabulary_index2word,vocabulary_index2word_label,epoch,threshold=FLAGS.pred_threshold,display_results_bool=display_results_bool,hamming_q=FLAGS.ave_labels_per_doc,top_number=FLAGS.topk,record_to_tensorboard=True,do_hierarchical_evaluation=FLAGS.do_hierarchical_evaluation,translation_dict_icd9=translation_dict_icd9,vocabulary_word2index_label=vocabulary_word2index_label)
                     print('lambda_sim', FLAGS.lambda_sim, 'lambda_sub', FLAGS.lambda_sub)
                     print("HAN==>Epoch %d Validation Loss:%.3f\tValidation Accuracy: %.3f\tValidation Hamming Loss: %.3f\tValidation Precision: %.3f\tValidation Recall: %.3f\tValidation F-measure: %.3f\tValidation Accuracy@k: %.3f\tValidation Hamming Loss@k: %.3f\tValidation Precision@k: %.3f\tValidation Recall@k: %.3f\tValidation F-measure@k: %.3f\tValidation macro-Accuracy: %.3f\tValidation macro-Precision: %.3f\tValidation macro-Recall: %.3f\tValidation macro-F-measure: %.3f\tValidation macro-AUC: %.3f\tValidation micro-Accuracy: %.3f\tValidation micro-Precision: %.3f\tValidation micro-Recall: %.3f\tValidation micro-F-measure: %.3f\tValidation micro-AUC: %.3f" % (epoch,eval_loss,eval_acc_th,eval_hamming_loss_th,eval_prec_th,eval_rec_th,eval_fmeasure_th,eval_acc_topk,eval_hamming_loss_topk,eval_prec_topk,eval_rec_topk,eval_fmeasure_topk,macro_accuracy, macro_precision, macro_recall, macro_f1, macro_auc, micro_accuracy, micro_precision, micro_recall, micro_f1, micro_auc))
                     # #output per-label metrics [not showing them here, otherwise too many texts]
@@ -541,9 +561,14 @@ def main(_):
                 # to initialise epoch in case that curr_epoch >= FLAGS.num_epochs (otherwise the variable "epoch" is already initialised in the for loop, over epochs)
                 epoch = FLAGS.num_epochs - 1
                 
-            valid_loss[num_run], valid_acc_th[num_run],valid_prec_th[num_run],valid_rec_th[num_run],valid_fmeasure_th[num_run],valid_hamming_loss_th[num_run],valid_prec_per_label_th[num_run],valid_rec_per_label_th[num_run],valid_f1_per_label_th[num_run],valid_acc_topk[num_run],valid_prec_topk[num_run],valid_rec_topk[num_run],valid_fmeasure_topk[num_run],valid_hamming_loss_topk[num_run],valid_prec_per_label_topk[num_run],valid_rec_per_label_topk[num_run],valid_f1_per_label_topk[num_run],valid_macro_accuracy[num_run], valid_macro_precision[num_run], valid_macro_recall[num_run], valid_macro_f1[num_run], valid_macro_auc[num_run], valid_micro_accuracy[num_run], valid_micro_precision[num_run], valid_micro_recall[num_run], valid_micro_f1[num_run], valid_micro_auc[num_run],valid_micro_precision_diag[num_run], valid_micro_recall_diag[num_run], valid_micro_f1_diag[num_run], valid_micro_precision_proc[num_run], valid_micro_recall_proc[num_run], valid_micro_f1_proc[num_run] = do_eval_multilabel_threshold(sess,model,label_sim_mat,label_sub_mat,validX,validY,batch_size,vocabulary_index2word,vocabulary_index2word_label,epoch,threshold=FLAGS.pred_threshold,display_results_bool=True,hamming_q=FLAGS.ave_labels_per_doc,top_number=FLAGS.topk,record_to_tensorboard=False)
+            valid_loss[num_run], valid_acc_th[num_run],valid_prec_th[num_run],valid_rec_th[num_run],valid_fmeasure_th[num_run],valid_hamming_loss_th[num_run],valid_prec_per_label_th[num_run],valid_rec_per_label_th[num_run],valid_f1_per_label_th[num_run],valid_acc_topk[num_run],valid_prec_topk[num_run],valid_rec_topk[num_run],valid_fmeasure_topk[num_run],valid_hamming_loss_topk[num_run],valid_prec_per_label_topk[num_run],valid_rec_per_label_topk[num_run],valid_f1_per_label_topk[num_run],valid_macro_accuracy[num_run], valid_macro_precision[num_run], valid_macro_recall[num_run], valid_macro_f1[num_run], valid_macro_auc[num_run], valid_micro_accuracy[num_run], valid_micro_precision[num_run], valid_micro_recall[num_run], valid_micro_f1[num_run], valid_micro_auc[num_run],valid_micro_precision_diag[num_run], valid_micro_recall_diag[num_run], valid_micro_f1_diag[num_run], valid_micro_precision_proc[num_run], valid_micro_recall_proc[num_run], valid_micro_f1_proc[num_run],valid_he_micro_prec[num_run], valid_he_micro_rec[num_run], valid_he_micro_f1[num_run], list_results_per_layer_valid = do_eval_multilabel_threshold(sess,model,label_sim_mat,label_sub_mat,validX,validY,batch_size,vocabulary_index2word,vocabulary_index2word_label,epoch,threshold=FLAGS.pred_threshold,display_results_bool=True,hamming_q=FLAGS.ave_labels_per_doc,top_number=FLAGS.topk,record_to_tensorboard=False,do_hierarchical_evaluation=FLAGS.do_hierarchical_evaluation,translation_dict_icd9=translation_dict_icd9,vocabulary_word2index_label=vocabulary_word2index_label)
+            #also append the list of hierEval results
+            valid_he_list_result_by_layer.append(list_results_per_layer_valid)
             
-            print("HAN==>Run %d Validation results:%.3f\tValidation Accuracy: %.3f\tValidation Hamming Loss: %.3f\tValidation Precision: %.3f\tValidation Recall: %.3f\tValidation F-measure: %.3f\tValidation Accuracy@k: %.3f\tValidation Hamming Loss@k: %.3f\tValidation Precision@k: %.3f\tValidation Recall@k: %.3f\tValidation F-measure@k: %.3f\tValidation macro-Accuracy: %.3f\tValidation macro-Precision: %.3f\tValidation macro-Recall: %.3f\tValidation macro-F-measure: %.3f\tValidation macro-AUC: %.3f\tValidation micro-Accuracy: %.3f\tValidation micro-Precision: %.3f\tValidation micro-Recall: %.3f\tValidation micro-F-measure: %.3f\tValidation micro-AUC: %.3f" % (num_run,valid_loss[num_run],valid_acc_th[num_run],valid_hamming_loss_th[num_run],valid_prec_th[num_run],valid_rec_th[num_run],valid_fmeasure_th[num_run],valid_acc_topk[num_run],valid_hamming_loss_topk[num_run],valid_prec_topk[num_run],valid_rec_topk[num_run],valid_fmeasure_topk[num_run],valid_macro_accuracy[num_run], valid_macro_precision[num_run], valid_macro_recall[num_run], valid_macro_f1[num_run], valid_macro_auc[num_run], valid_micro_accuracy[num_run], valid_micro_precision[num_run], valid_micro_recall[num_run], valid_micro_f1[num_run], valid_micro_auc[num_run]))
+            valid_results_to_display = "HAN==>Run %d Validation results:%.3f\tValidation Accuracy: %.3f\tValidation Hamming Loss: %.3f\tValidation Precision: %.3f\tValidation Recall: %.3f\tValidation F-measure: %.3f\tValidation Accuracy@k: %.3f\tValidation Hamming Loss@k: %.3f\tValidation Precision@k: %.3f\tValidation Recall@k: %.3f\tValidation F-measure@k: %.3f\tValidation macro-Accuracy: %.3f\tValidation macro-Precision: %.3f\tValidation macro-Recall: %.3f\tValidation macro-F-measure: %.3f\tValidation macro-AUC: %.3f\tValidation micro-Accuracy: %.3f\tValidation micro-Precision: %.3f\tValidation micro-Recall: %.3f\tValidation micro-F-measure: %.3f\tValidation micro-AUC: %.3f" % (num_run,valid_loss[num_run],valid_acc_th[num_run],valid_hamming_loss_th[num_run],valid_prec_th[num_run],valid_rec_th[num_run],valid_fmeasure_th[num_run],valid_acc_topk[num_run],valid_hamming_loss_topk[num_run],valid_prec_topk[num_run],valid_rec_topk[num_run],valid_fmeasure_topk[num_run],valid_macro_accuracy[num_run], valid_macro_precision[num_run], valid_macro_recall[num_run], valid_macro_f1[num_run], valid_macro_auc[num_run], valid_micro_accuracy[num_run], valid_micro_precision[num_run], valid_micro_recall[num_run], valid_micro_f1[num_run], valid_micro_auc[num_run])
+            if FLAGS.do_hierarchical_evaluation:
+                valid_results_to_display = valid_results_to_display + '\tValidation hier-micro-Precision: %.3f\tValidation hier-micro-Recall: %.3f\tValidation hier-micro-F-measure: %.3f' % (valid_he_micro_prec[num_run], valid_he_micro_rec[num_run], valid_he_micro_f1[num_run])
+            print(valid_results_to_display)
             
             #output code type metrics (if mimic)
             if 'mimic3-ds' in FLAGS.dataset:
@@ -554,12 +579,26 @@ def main(_):
             print('Validation results, per label, threshold:\n' + show_per_label_results(vocabulary_index2word_label,valid_prec_per_label_th[num_run],valid_rec_per_label_th[num_run],valid_f1_per_label_th[num_run]))
             print('Validation results, per label, top %d:\n' % FLAGS.topk + show_per_label_results(vocabulary_index2word_label,valid_prec_per_label_topk[num_run],valid_rec_per_label_topk[num_run],valid_f1_per_label_topk[num_run]))
             
-            output_valid = output_valid + "\n" + "HAN=>Run %d Validation results Validation Loss:%.3f\tValidation Accuracy: %.3f\tValidation Hamming Loss: %.3f\tValidation Precision: %.3f\tValidation Recall: %.3f\tValidation F-measure: %.3f\tValidation Accuracy@k: %.3f\tValidation Hamming Loss@k: %.3f\tValidation Precision@k: %.3f\tValidation Recall@k: %.3f\tValidation F-measure@k: %.3f\tValidation macro-Accuracy: %.3f\tValidation macro-Precision: %.3f\tValidation macro-Recall: %.3f\tValidation macro-F-measure: %.3f\tValidation macro-AUC: %.3f\tValidation micro-Accuracy: %.3f\tValidation micro-Precision: %.3f\tValidation micro-Recall: %.3f\tValidation micro-F-measure: %.3f\tValidation micro-AUC: %.3f" % (num_run,valid_loss[num_run],valid_acc_th[num_run],valid_hamming_loss_th[num_run],valid_prec_th[num_run],valid_rec_th[num_run],valid_fmeasure_th[num_run],valid_acc_topk[num_run],valid_hamming_loss_topk[num_run],valid_prec_topk[num_run],valid_rec_topk[num_run],valid_fmeasure_topk[num_run],valid_macro_accuracy[num_run], valid_macro_precision[num_run], valid_macro_recall[num_run], valid_macro_f1[num_run], valid_macro_auc[num_run], valid_micro_accuracy[num_run], valid_micro_precision[num_run], valid_micro_recall[num_run], valid_micro_f1[num_run], valid_micro_auc[num_run]) + "\n" # store validation results of each run to the output_valid string.
+            output_valid = output_valid + "\n" + valid_results_to_display + "\n" # store validation results of each run to the output_valid string.
             
+            #add hierarchical evaluation per layer
+            if FLAGS.do_hierarchical_evaluation:
+                output_valid_he_layers = 'Validation he_eval_results_per_layer:'
+                #loop over the list by every 3 elements together (which contain a set of prec, rec, and f1 metrics of a layer in the hierarchy)
+                num_he_layer_metrics = len(valid_he_list_result_by_layer[-1])
+                for layer_ind, (start,end) in enumerate(zip(range(0,num_he_layer_metrics,3),range(3,num_he_layer_metrics+3,3))):
+                    he_layer_metric_values = valid_he_list_result_by_layer[-1][start:end]                
+                    output_valid_he_layers = output_valid_he_layers + '\nlayer %d:\n' % layer_ind + 'hier-micro-Precision: %.3f\thier-micro-Recall: %.3f\thier-micro-F-measure: %.3f' % tuple(he_layer_metric_values)
+            
+                output_valid = output_valid + output_valid_he_layers
+                
             # 6.here we use the testing data, to report testing results
-            test_loss[num_run], test_acc_th[num_run],test_prec_th[num_run],test_rec_th[num_run],test_fmeasure_th[num_run],test_hamming_loss_th[num_run],test_prec_per_label_th[num_run],test_rec_per_label_th[num_run],test_f1_per_label_th[num_run],test_acc_topk[num_run],test_prec_topk[num_run],test_rec_topk[num_run],test_fmeasure_topk[num_run],test_hamming_loss_topk[num_run],test_prec_per_label_topk[num_run],test_rec_per_label_topk[num_run],test_f1_per_label_topk[num_run],test_macro_accuracy[num_run], test_macro_precision[num_run], test_macro_recall[num_run], test_macro_f1[num_run], test_macro_auc[num_run], test_micro_accuracy[num_run], test_micro_precision[num_run], test_micro_recall[num_run], test_micro_f1[num_run], test_micro_auc[num_run],test_micro_precision_diag[num_run], test_micro_recall_diag[num_run], test_micro_f1_diag[num_run], test_micro_precision_proc[num_run], test_micro_recall_proc[num_run], test_micro_f1_proc[num_run] = do_eval_multilabel_threshold(sess,model,label_sim_mat,label_sub_mat,testX,testY,batch_size,vocabulary_index2word,vocabulary_index2word_label,epoch,threshold=FLAGS.pred_threshold,display_results_bool=True,hamming_q=FLAGS.ave_labels_per_doc,top_number=FLAGS.topk,record_to_tensorboard=False,output_logits=FLAGS.output_logits,output_logits_filename_prefix=filename_common_prefix,num_run=num_run) # output logit set as true for testing.
+            test_loss[num_run], test_acc_th[num_run],test_prec_th[num_run],test_rec_th[num_run],test_fmeasure_th[num_run],test_hamming_loss_th[num_run],test_prec_per_label_th[num_run],test_rec_per_label_th[num_run],test_f1_per_label_th[num_run],test_acc_topk[num_run],test_prec_topk[num_run],test_rec_topk[num_run],test_fmeasure_topk[num_run],test_hamming_loss_topk[num_run],test_prec_per_label_topk[num_run],test_rec_per_label_topk[num_run],test_f1_per_label_topk[num_run],test_macro_accuracy[num_run], test_macro_precision[num_run], test_macro_recall[num_run], test_macro_f1[num_run], test_macro_auc[num_run], test_micro_accuracy[num_run], test_micro_precision[num_run], test_micro_recall[num_run], test_micro_f1[num_run], test_micro_auc[num_run],test_micro_precision_diag[num_run], test_micro_recall_diag[num_run], test_micro_f1_diag[num_run], test_micro_precision_proc[num_run], test_micro_recall_proc[num_run], test_micro_f1_proc[num_run],test_he_micro_prec[num_run],test_he_micro_rec[num_run],test_he_micro_f1[num_run],list_results_per_layer_test = do_eval_multilabel_threshold(sess,model,label_sim_mat,label_sub_mat,testX,testY,batch_size,vocabulary_index2word,vocabulary_index2word_label,epoch,threshold=FLAGS.pred_threshold,display_results_bool=True,hamming_q=FLAGS.ave_labels_per_doc,top_number=FLAGS.topk,record_to_tensorboard=False,output_logits=FLAGS.output_logits,output_logits_filename_prefix=filename_common_prefix,num_run=num_run,do_hierarchical_evaluation=FLAGS.do_hierarchical_evaluation,translation_dict_icd9=translation_dict_icd9,vocabulary_word2index_label=vocabulary_word2index_label) # output logit set as true for testing.
+            test_he_list_result_by_layer.append(list_results_per_layer_test)
             
-            print("HAN==>Run %d Test results Test Loss:%.3f\tValidation Accuracy: %.3f\tValidation Hamming Loss: %.3f\tValidation Precision: %.3f\tValidation Recall: %.3f\tValidation F-measure: %.3f\tValidation Accuracy@k: %.3f\tValidation Hamming Loss@k: %.3f\tValidation Precision@k: %.3f\tValidation Recall@k: %.3f\tValidation F-measure@k: %.3f\tValidation macro-Accuracy: %.3f\tValidation macro-Precision: %.3f\tValidation macro-Recall: %.3f\tValidation macro-F-measure: %.3f\tValidation macro-AUC: %.3f\tValidation micro-Accuracy: %.3f\tValidation micro-Precision: %.3f\tValidation micro-Recall: %.3f\tValidation micro-F-measure: %.3f\tValidation micro-AUC: %.3f" % (num_run,test_loss[num_run],test_acc_th[num_run],test_hamming_loss_th[num_run],test_prec_th[num_run],test_rec_th[num_run],test_fmeasure_th[num_run],test_acc_topk[num_run],test_hamming_loss_topk[num_run],test_prec_topk[num_run],test_rec_topk[num_run],test_fmeasure_topk[num_run],test_macro_accuracy[num_run], test_macro_precision[num_run], test_macro_recall[num_run], test_macro_f1[num_run], test_macro_auc[num_run], test_micro_accuracy[num_run], test_micro_precision[num_run], test_micro_recall[num_run], test_micro_f1[num_run], test_micro_auc[num_run]))
+            test_results_to_display = "HAN==>Run %d Test results Test Loss:%.3f\tValidation Accuracy: %.3f\tValidation Hamming Loss: %.3f\tValidation Precision: %.3f\tValidation Recall: %.3f\tValidation F-measure: %.3f\tValidation Accuracy@k: %.3f\tValidation Hamming Loss@k: %.3f\tValidation Precision@k: %.3f\tValidation Recall@k: %.3f\tValidation F-measure@k: %.3f\tValidation macro-Accuracy: %.3f\tValidation macro-Precision: %.3f\tValidation macro-Recall: %.3f\tValidation macro-F-measure: %.3f\tValidation macro-AUC: %.3f\tValidation micro-Accuracy: %.3f\tValidation micro-Precision: %.3f\tValidation micro-Recall: %.3f\tValidation micro-F-measure: %.3f\tValidation micro-AUC: %.3f" % (num_run,test_loss[num_run],test_acc_th[num_run],test_hamming_loss_th[num_run],test_prec_th[num_run],test_rec_th[num_run],test_fmeasure_th[num_run],test_acc_topk[num_run],test_hamming_loss_topk[num_run],test_prec_topk[num_run],test_rec_topk[num_run],test_fmeasure_topk[num_run],test_macro_accuracy[num_run], test_macro_precision[num_run], test_macro_recall[num_run], test_macro_f1[num_run], test_macro_auc[num_run], test_micro_accuracy[num_run], test_micro_precision[num_run], test_micro_recall[num_run], test_micro_f1[num_run], test_micro_auc[num_run])
+            if FLAGS.do_hierarchical_evaluation:
+                test_results_to_display = test_results_to_display + '\tValidation hier-micro-Precision: %.3f\tValidation hier-micro-Recall: %.3f\tValidation hier-micro-F-measure: %.3f' % (test_he_micro_prec[num_run],test_he_micro_rec[num_run],test_he_micro_f1[num_run])
             
             #output code type metrics (if mimic)
             if 'mimic3-ds' in FLAGS.dataset:
@@ -570,7 +609,18 @@ def main(_):
             print('Test results, per label, threshold:\n' + show_per_label_results(vocabulary_index2word_label,test_prec_per_label_th[num_run],test_rec_per_label_th[num_run],test_f1_per_label_th[num_run]))
             print('Test results, per label, top %d:\n' % FLAGS.topk + show_per_label_results(vocabulary_index2word_label,test_prec_per_label_topk[num_run],test_rec_per_label_topk[num_run],test_f1_per_label_topk[num_run]))
             
-            output_test = output_test + "\n" + "HAN==>Run %d Test results Validation Loss:%.3f\tValidation Accuracy: %.3f\tValidation Hamming Loss: %.3f\tValidation Precision: %.3f\tValidation Recall: %.3f\tValidation F-measure: %.3f\tValidation Accuracy@k: %.3f\tValidation Hamming Loss@k: %.3f\tValidation Precision@k: %.3f\tValidation Recall@k: %.3f\tValidation F-measure@k: %.3f\tValidation macro-Accuracy: %.3f\tValidation macro-Precision: %.3f\tValidation macro-Recall: %.3f\tValidation macro-F-measure: %.3f\tValidation macro-AUC: %.3f\tValidation micro-Accuracy: %.3f\tValidation micro-Precision: %.3f\tValidation micro-Recall: %.3f\tValidation micro-F-measure: %.3f\tValidation micro-AUC: %.3f" % (num_run,test_loss[num_run],test_acc_th[num_run],test_hamming_loss_th[num_run],test_prec_th[num_run],test_rec_th[num_run],test_fmeasure_th[num_run],test_acc_topk[num_run],test_hamming_loss_topk[num_run],test_prec_topk[num_run],test_rec_topk[num_run],test_fmeasure_topk[num_run],test_macro_accuracy[num_run], test_macro_precision[num_run], test_macro_recall[num_run], test_macro_f1[num_run], test_macro_auc[num_run], test_micro_accuracy[num_run], test_micro_precision[num_run], test_micro_recall[num_run], test_micro_f1[num_run], test_micro_auc[num_run]) + "\n" # store the testing results of each run to the output_test string.
+            output_test = output_test + "\n" + test_results_to_display + "\n" # store the testing results of each run to the output_test string.
+            
+            #add hierarchical evaluation per layer
+            if FLAGS.do_hierarchical_evaluation:
+                output_test_he_layers = 'Test he_eval_results_per_layer:'
+                #loop over the list by every 3 elements together (which contain a set of prec, rec, and f1 metrics of a layer in the hierarchy)
+                num_he_layer_metrics = len(test_he_list_result_by_layer[-1])
+                for layer_ind, (start,end) in enumerate(zip(range(0,num_he_layer_metrics,3),range(3,num_he_layer_metrics+3,3))):
+                    he_layer_metric_values = test_he_list_result_by_layer[-1][start:end]                
+                    output_test_he_layers = output_test_he_layers + '\nlayer %d:\n' % layer_ind + 'hier-micro-Precision: %.3f\thier-micro-Recall: %.3f\thier-micro-F-measure: %.3f' % tuple(he_layer_metric_values)
+            
+                output_test = output_test + output_test_he_layers
             
             #output test result immediately
             # get the experimental input settings
@@ -592,7 +642,8 @@ def main(_):
                     prediction_str = display_for_qualitative_evaluation_per_label(sess,model,label_sim_mat,label_sub_mat,testX,testY,batch_size,vocabulary_index2word,vocabulary_index2word_label,threshold=FLAGS.pred_threshold,use_random_sampling=FLAGS.use_random_sampling) #default as not using random sampling, that is, to display all results with attention weights (for small test set)
                 else:
                     prediction_str = display_for_qualitative_evaluation(sess,model,label_sim_mat,label_sub_mat,testX,testY,batch_size,vocabulary_index2word,vocabulary_index2word_label,threshold=FLAGS.pred_threshold,use_random_sampling=FLAGS.use_random_sampling)
-            
+                    
+            #output the results for the current run (or the current fold of the cross-validation)
             output_to_file(filename_common_prefix + ' results update.txt', setting + '\n' + output_valid + '\n' + output_test + '\n' + prediction_str + '\n' + output_time_train)
             
             # update the num_run
@@ -613,25 +664,67 @@ def main(_):
 
     # output structured evaluation results to csv files: valid and test
     output_csv_valid = "fold,loss,hamming_loss,acc,prec,rec,f1,hamming_loss@k,acc@k,prec@k,rec@k,f1@k,macro-acc,macro-prec,macro-rec,macro-f1,macro-AUC,micro-acc,micro-prec,micro-rec,micro-f1,micro-AUC" # set header
+    if FLAGS.do_hierarchical_evaluation:
+        output_csv_valid = output_csv_valid + ",HE-micro-prec,HE-micro-rec,HE-micro-f1" 
+        num_he_layer_metrics = len(valid_he_list_result_by_layer[-1])
+        for i in range(int(num_he_layer_metrics/3)): #loop over the layer in the hierarchical evaluation, each layer has 3 metrics, prec, rec, and f1.
+            output_csv_valid = output_csv_valid + ',HE-micro-prec-layer%d,HE-micro-rec-layer%d,HE-micro-f1-layer%d' % (i,i,i)
     output_csv_test = output_csv_valid # set header
     
-    for ind, (v_loss,v_ham_loss,v_acc,v_prec,v_rec,v_f1,v_ham_loss_topk,v_acc_topk,v_prec_topk,v_rec_topk,v_f1_topk,v_micro_acc,v_micro_prec,v_micro_rec,v_micro_f1,v_micro_auc,v_macro_acc,v_macro_prec,v_macro_rec,v_macro_f1,v_macro_auc) in enumerate(zip(valid_loss, valid_hamming_loss_th,valid_acc_th,valid_prec_th,valid_rec_th,valid_fmeasure_th,valid_hamming_loss_topk,valid_acc_topk,valid_prec_topk,valid_rec_topk,valid_fmeasure_topk,valid_macro_accuracy, valid_macro_precision, valid_macro_recall, valid_macro_f1, valid_macro_auc, valid_micro_accuracy, valid_micro_precision, valid_micro_recall, valid_micro_f1, valid_micro_auc)):
+    for ind, (v_loss,v_ham_loss,v_acc,v_prec,v_rec,v_f1,v_ham_loss_topk,v_acc_topk,v_prec_topk,v_rec_topk,v_f1_topk,v_micro_acc,v_micro_prec,v_micro_rec,v_micro_f1,v_micro_auc,v_macro_acc,v_macro_prec,v_macro_rec,v_macro_f1,v_macro_auc, v_he_prec,v_he_rec,v_he_f1,v_he_layer_res_list) in enumerate(zip(valid_loss, valid_hamming_loss_th,valid_acc_th,valid_prec_th,valid_rec_th,valid_fmeasure_th,valid_hamming_loss_topk,valid_acc_topk,valid_prec_topk,valid_rec_topk,valid_fmeasure_topk,valid_macro_accuracy, valid_macro_precision, valid_macro_recall, valid_macro_f1, valid_macro_auc, valid_micro_accuracy, valid_micro_precision, valid_micro_recall, valid_micro_f1, valid_micro_auc, valid_he_micro_prec, valid_he_micro_rec, valid_he_micro_f1,valid_he_list_result_by_layer)):
         output_csv_valid = output_csv_valid + '\n' + ','.join([str(ind), '%.3f' % v_loss,'%.3f' % v_ham_loss,'%.3f' % v_acc,'%.3f' % v_prec,'%.3f' % v_rec,'%.3f' % v_f1,'%.3f' % v_ham_loss_topk,'%.3f' % v_acc_topk,'%.3f' % v_prec_topk,'%.3f' % v_rec_topk,'%.3f' % v_f1_topk,'%.3f' % v_micro_acc,'%.3f' % v_micro_prec,'%.3f' % v_micro_rec,'%.3f' % v_micro_f1,'%.3f' % v_micro_auc,'%.3f' % v_macro_acc,'%.3f' % v_macro_prec,'%.3f' % v_macro_rec,'%.3f' % v_macro_f1,'%.3f' % v_macro_auc]) # filling results per run, with rounding to 3 decimal places
-    output_csv_valid = output_csv_valid + '\n' + ','.join(['mean±std']+[cal_ave_std(ele) for ele in [valid_loss, valid_hamming_loss_th,valid_acc_th,valid_prec_th,valid_rec_th,valid_fmeasure_th,valid_hamming_loss_topk,valid_acc_topk,valid_prec_topk,valid_rec_topk,valid_fmeasure_topk,valid_macro_accuracy, valid_macro_precision, valid_macro_recall, valid_macro_f1, valid_macro_auc, valid_micro_accuracy, valid_micro_precision, valid_micro_recall, valid_micro_f1, valid_micro_auc]])
-    
-    for ind, (t_loss,t_ham_loss,t_acc,t_prec,t_rec,t_f1,t_ham_loss_topk,t_acc_topk,t_prec_topk,t_rec_topk,t_f1_topk,t_micro_acc,t_micro_prec,t_micro_rec,t_micro_f1,t_micro_auc,t_macro_acc,t_macro_prec,t_macro_rec,t_macro_f1,t_macro_auc) in enumerate(zip(test_loss, test_hamming_loss_th,test_acc_th,test_prec_th,test_rec_th,test_fmeasure_th,test_hamming_loss_topk,test_acc_topk,test_prec_topk,test_rec_topk,test_fmeasure_topk,test_macro_accuracy, test_macro_precision, test_macro_recall, test_macro_f1, test_macro_auc, test_micro_accuracy, test_micro_precision, test_micro_recall, test_micro_f1, test_micro_auc)):
+        if FLAGS.do_hierarchical_evaluation:
+            output_csv_valid = output_csv_valid + ',' + ','.join(['%.3f' % v_he_prec, '%.3f' % v_he_rec, '%.3f' % v_he_f1] + ['%.3f' % v_he_layer_res for v_he_layer_res in v_he_layer_res_list]) # filling results per run, with rounding to 3 decimal places
+    output_csv_valid = output_csv_valid + '\n' + ','.join(['mean±std']+[cal_ave_std(ele) for ele in ([valid_loss, valid_hamming_loss_th,valid_acc_th,valid_prec_th,valid_rec_th,valid_fmeasure_th,valid_hamming_loss_topk,valid_acc_topk,valid_prec_topk,valid_rec_topk,valid_fmeasure_topk,valid_macro_accuracy, valid_macro_precision, valid_macro_recall, valid_macro_f1, valid_macro_auc, valid_micro_accuracy, valid_micro_precision, valid_micro_recall, valid_micro_f1, valid_micro_auc])])
+    if FLAGS.do_hierarchical_evaluation:
+        valid_he_list_metric_by_layer = [list(valid_he_metric_by_layer) for valid_he_metric_by_layer in zip(*valid_he_list_result_by_layer)] # transpose the nested list from rows as runs to rows as metrics
+        output_csv_valid = output_csv_valid + ',' + ','.join([cal_ave_std(ele) for ele in ([valid_he_micro_prec, valid_he_micro_rec, valid_he_micro_f1] + valid_he_list_metric_by_layer)])
+        
+    for ind, (t_loss,t_ham_loss,t_acc,t_prec,t_rec,t_f1,t_ham_loss_topk,t_acc_topk,t_prec_topk,t_rec_topk,t_f1_topk,t_micro_acc,t_micro_prec,t_micro_rec,t_micro_f1,t_micro_auc,t_macro_acc,t_macro_prec,t_macro_rec,t_macro_f1,t_macro_auc,t_he_prec,t_he_rec,t_he_f1,t_he_layer_res_list) in enumerate(zip(test_loss, test_hamming_loss_th,test_acc_th,test_prec_th,test_rec_th,test_fmeasure_th,test_hamming_loss_topk,test_acc_topk,test_prec_topk,test_rec_topk,test_fmeasure_topk,test_macro_accuracy, test_macro_precision, test_macro_recall, test_macro_f1, test_macro_auc, test_micro_accuracy, test_micro_precision, test_micro_recall, test_micro_f1, test_micro_auc, test_he_micro_prec, test_he_micro_rec, test_he_micro_f1, test_he_list_result_by_layer)):
         output_csv_test = output_csv_test + '\n' + ','.join([str(ind), '%.3f' % t_loss,'%.3f' % t_ham_loss,'%.3f' % t_acc,'%.3f' % t_prec,'%.3f' % t_rec,'%.3f' % t_f1,'%.3f' % t_ham_loss_topk,'%.3f' % t_acc_topk,'%.3f' % t_prec_topk,'%.3f' % t_rec_topk,'%.3f' % t_f1_topk,'%.3f' % t_micro_acc,'%.3f' % t_micro_prec,'%.3f' % t_micro_rec,'%.3f' % t_micro_f1,'%.3f' % t_micro_auc,'%.3f' % t_macro_acc,'%.3f' % t_macro_prec,'%.3f' % t_macro_rec,'%.3f' % t_macro_f1,'%.3f' % t_macro_auc]) # filling results per run, with rounding to 3 decimal places
-    output_csv_test = output_csv_test + '\n' + ','.join(['mean±std']+[cal_ave_std(ele) for ele in [test_loss, test_hamming_loss_th,test_acc_th,test_prec_th,test_rec_th,test_fmeasure_th,test_hamming_loss_topk,test_acc_topk,test_prec_topk,test_rec_topk,test_fmeasure_topk,test_macro_accuracy, test_macro_precision, test_macro_recall, test_macro_f1, test_macro_auc, test_micro_accuracy, test_micro_precision, test_micro_recall, test_micro_f1, test_micro_auc]])
+        if FLAGS.do_hierarchical_evaluation:
+            output_csv_test = output_csv_test + ',' + ','.join(['%.3f' % t_he_prec,'%.3f' % t_he_rec,'%.3f' % t_he_f1] + ['%.3f' % t_he_layer_res for t_he_layer_res in t_he_layer_res_list]) # filling results per run, with rounding to 3 decimal places
+    output_csv_test = output_csv_test + '\n' + ','.join(['mean±std']+[cal_ave_std(ele) for ele in ([test_loss, test_hamming_loss_th,test_acc_th,test_prec_th,test_rec_th,test_fmeasure_th,test_hamming_loss_topk,test_acc_topk,test_prec_topk,test_rec_topk,test_fmeasure_topk,test_macro_accuracy, test_macro_precision, test_macro_recall, test_macro_f1, test_macro_auc, test_micro_accuracy, test_micro_precision, test_micro_recall, test_micro_f1, test_micro_auc])])
+    if FLAGS.do_hierarchical_evaluation:
+        test_he_list_metric_by_layer = [list(test_he_metric_by_layer) for test_he_metric_by_layer in zip(*test_he_list_result_by_layer)] # transpose the nested list from rows as runs to rows as metrics
+        output_csv_test = output_csv_test + ',' + ','.join([cal_ave_std(ele) for ele in ([test_he_micro_prec, test_he_micro_rec, test_he_micro_f1] + test_he_list_metric_by_layer)])
+        
     output_to_file(filename_common_prefix + ' valid.csv',output_csv_valid)
     output_to_file(filename_common_prefix + ' test.csv',output_csv_test)
     
     # output overall information: setting configuration, results, prediction and time used
     #update both output_valid and output_test with structured evaluation results
     structured_results_valid = "HAN==>Final Validation results Validation Loss:%s\tValidation Hamming Loss: %s\tValidation Accuracy: %s\tValidation Precision: %s\tValidation Recall: %s\tValidation F-measure: %s\tValidation Hamming Loss@k: %s\tValidation Accuracy@k: %s\tValidation Precision@k: %s\tValidation Recall@k: %s\tValidation F-measure@k: %s\tValidation macro-Accuracy: %s\tValidation macro-Precision: %s\tValidation macro-Recall: %s\tValidation macro-F-measure: %s\tValidation macro-AUC: %s\tValidation micro-Accuracy: %s\tValidation micro-Precision: %s\tValidation micro-Recall: %s\tValidation micro-F-measure: %s\tValidation micro-AUC: %s" % tuple(cal_ave_std(ele,with_min_max=True) for ele in [valid_loss, valid_hamming_loss_th,valid_acc_th,valid_prec_th,valid_rec_th,valid_fmeasure_th,valid_hamming_loss_topk,valid_acc_topk,valid_prec_topk,valid_rec_topk,valid_fmeasure_topk,valid_macro_accuracy, valid_macro_precision, valid_macro_recall, valid_macro_f1, valid_macro_auc, valid_micro_accuracy, valid_micro_precision, valid_micro_recall, valid_micro_f1, valid_micro_auc])
+    if FLAGS.do_hierarchical_evaluation:
+        structured_results_valid = structured_results_valid + '\tValidation hier-micro-Precision: %s\tValidation hier-micro-Recall: %s\tValidation hier-micro-F-measure: %s' % tuple(cal_ave_std(ele,with_min_max=True) for ele in [valid_he_micro_prec, valid_he_micro_rec, valid_he_micro_f1])
+        
+    #add hierarchical evaluation per layer (structured results)
+    if FLAGS.do_hierarchical_evaluation:
+        structured_results_valid_he_layers = 'Validation he_eval_results_per_layer:'
+        #loop over the list by every 3 elements together (which contain a set of prec, rec, and f1 metrics of a layer in the hierarchy)
+        num_he_layer_metrics = len(valid_he_list_metric_by_layer) # here using the transposed nested list
+        for layer_ind, (start,end) in enumerate(zip(range(0,num_he_layer_metrics,3),range(3,num_he_layer_metrics+3,3))):
+            he_layer_list_metric_values = valid_he_list_metric_by_layer[start:end]                
+            structured_results_valid_he_layers = structured_results_valid_he_layers + '\nlayer %d:\n' % layer_ind + 'hier-micro-Precision: %s\thier-micro-Recall: %s\thier-micro-F-measure: %s' % tuple(cal_ave_std(ele,with_min_max=True) for ele in he_layer_list_metric_values)
+    
+        structured_results_valid = structured_results_valid + '\n' + structured_results_valid_he_layers
     print(structured_results_valid) #output to console as well
     output_valid = output_valid + '\n' + structured_results_valid + '\n'
     
     structured_results_test = "HAN==>Final Test results Test Loss:%s\tTest Hamming Loss: %s\tTest Accuracy: %s\tTest Precision: %s\tTest Recall: %s\tTest F-measure: %s\tTest Hamming Loss@k: %s\tTest Accuracy@k: %s\tTest Precision@k: %s\tTest Recall@k: %s\tTest F-measure@k: %s\tTest macro-Accuracy: %s\tTest macro-Precision: %s\tTest macro-Recall: %s\tTest macro-F-measure: %s\tTest macro-AUC: %s\tTest micro-Accuracy: %s\tTest micro-Precision: %s\tTest micro-Recall: %s\tTest micro-F-measure: %s\tTest micro-AUC: %s" % tuple(cal_ave_std(ele,with_min_max=True) for ele in [test_loss, test_hamming_loss_th,test_acc_th,test_prec_th,test_rec_th,test_fmeasure_th,test_hamming_loss_topk,test_acc_topk,test_prec_topk,test_rec_topk,test_fmeasure_topk,test_macro_accuracy, test_macro_precision, test_macro_recall, test_macro_f1, test_macro_auc, test_micro_accuracy, test_micro_precision, test_micro_recall, test_micro_f1, test_micro_auc])
+    if FLAGS.do_hierarchical_evaluation:
+        structured_results_test = structured_results_test + '\tValidation hier-micro-Precision: %s\tValidation hier-micro-Recall: %s\tValidation hier-micro-F-measure: %s' % tuple(cal_ave_std(ele,with_min_max=True) for ele in [ test_he_micro_prec, test_he_micro_rec, test_he_micro_f1])
+    
+    #add hierarchical evaluation per layer (structured results)
+    if FLAGS.do_hierarchical_evaluation:
+        structured_results_test_he_layers = 'Test he_eval_results_per_layer:'
+        #loop over the list by every 3 elements together (which contain a set of prec, rec, and f1 metrics of a layer in the hierarchy)
+        num_he_layer_metrics = len(test_he_list_metric_by_layer) # here using the transposed nested list
+        for layer_ind, (start,end) in enumerate(zip(range(0,num_he_layer_metrics,3),range(3,num_he_layer_metrics+3,3))):
+            he_layer_list_metric_values = test_he_list_metric_by_layer[start:end]                
+            structured_results_test_he_layers = structured_results_test_he_layers + '\nlayer %d:\n' % layer_ind + 'hier-micro-Precision: %s\thier-micro-Recall: %s\thier-micro-F-measure: %s' % tuple(cal_ave_std(ele,with_min_max=True) for ele in he_layer_list_metric_values)
+    
+        structured_results_test = structured_results_test + '\n' + structured_results_test_he_layers
     print(structured_results_test) #output to console as well
     output_test = output_test + '\n' + structured_results_test + '\n'
     output_to_file(filename_common_prefix + '.txt', setting + '\n' + output_valid + '\n' + output_test + '\n' + prediction_str + '\n' + time_used + '\n' + average_time_train)
@@ -792,7 +885,7 @@ def assign_pretrained_label_embedding_per_label(sess,vocabulary_index2word_label
         print("using pre-trained label emebedding.ended...")
         
 # based on a threshold, for multilabel
-def do_eval_multilabel_threshold(sess,modelToEval,label_sim_mat,label_sub_mat,evalX,evalY,batch_size,vocabulary_index2word,vocabulary_index2word_label,epoch,threshold=0.5,display_results_bool=True,hamming_q=FLAGS.ave_labels_per_doc,top_number=FLAGS.topk,record_to_tensorboard=True,output_logits=False,output_logits_filename_prefix='',num_run=0):
+def do_eval_multilabel_threshold(sess,modelToEval,label_sim_mat,label_sub_mat,evalX,evalY,batch_size,vocabulary_index2word,vocabulary_index2word_label,epoch,threshold=0.5,display_results_bool=True,hamming_q=FLAGS.ave_labels_per_doc,top_number=FLAGS.topk,record_to_tensorboard=True,output_logits=False,output_logits_filename_prefix='',num_run=0,do_hierarchical_evaluation=True,translation_dict_icd9=None,vocabulary_word2index_label=None,max_onto_layers=3):
     #print(display_results_bool)
     number_examples=len(evalX)
     print("number_examples", number_examples)
@@ -960,7 +1053,14 @@ def do_eval_multilabel_threshold(sess,modelToEval,label_sim_mat,label_sub_mat,ev
     prec_per_label_topk = metrics.precision_score(evalY,logits_binary_topk,average=None)
     rec_per_label_topk = metrics.recall_score(evalY,logits_binary_topk,average=None)
     f1_per_label_topk = metrics.f1_score(evalY,logits_binary_topk,average=None)
-    return eval_loss/float(eval_counter),eval_acc_th/float(eval_counter),eval_prec_th,eval_rec_th,eval_fmeasure_th,eval_hamming_loss_th/hamming_q,prec_per_label_th,rec_per_label_th,f1_per_label_th,eval_acc_topk/float(eval_counter),eval_prec_topk,eval_rec_topk,eval_fmeasure_topk,eval_hamming_loss_topk/hamming_q,prec_per_label_topk,rec_per_label_topk,f1_per_label_topk, macro_accuracy, macro_precision, macro_recall, macro_f1, macro_auc, micro_accuracy, micro_precision, micro_recall, micro_f1, micro_auc, micro_precision_diag, micro_recall_diag, micro_f1_diag, micro_precision_proc, micro_recall_proc, micro_f1_proc
+    
+    #4. hierarchical evaluation
+    he_micro_prec,he_micro_rec,he_micro_f1,list_results_per_layer = None, None, None, [] #intialisation
+    if do_hierarchical_evaluation:
+        if translation_dict_icd9 != None:
+            he_micro_prec,he_micro_rec,he_micro_f1,list_results_per_layer = hierarchical_evaluation(logits_binary, evalY_np_array, vocabulary_word2index_label, translation_dict_icd9, max_onto_layers=max_onto_layers, verbo=True)            
+        
+    return eval_loss/float(eval_counter),eval_acc_th/float(eval_counter),eval_prec_th,eval_rec_th,eval_fmeasure_th,eval_hamming_loss_th/hamming_q,prec_per_label_th,rec_per_label_th,f1_per_label_th,eval_acc_topk/float(eval_counter),eval_prec_topk,eval_rec_topk,eval_fmeasure_topk,eval_hamming_loss_topk/hamming_q,prec_per_label_topk,rec_per_label_topk,f1_per_label_topk, macro_accuracy, macro_precision, macro_recall, macro_f1, macro_auc, micro_accuracy, micro_precision, micro_recall, micro_f1, micro_auc, micro_precision_diag, micro_recall_diag, micro_f1_diag, micro_precision_proc, micro_recall_proc, micro_f1_proc, he_micro_prec, he_micro_rec, he_micro_f1, list_results_per_layer
 
 #to do: the two functions below could only predict the seeded examples, thus making them to run much faster.
 def display_for_qualitative_evaluation(sess,modelToEval,label_sim_mat,label_sub_mat,evalX,evalY,batch_size,vocabulary_index2word,vocabulary_index2word_label,threshold=0.5,use_random_sampling=False):
