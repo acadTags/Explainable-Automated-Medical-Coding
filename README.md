@@ -7,7 +7,7 @@ Detailed explanation of the approach is in
 
 A part of the results (especially regarding label embedding initialisation) was orally and virtually presented in [HealTAC 2020](http://healtex.org/healtac-2020/programme/) with [slides](https://drive.google.com/file/d/1XIhuwMuelmsFYvsXYABr7NJjnJTULrez/view) available.
 
-Update (6 Sep 2021): added `--do_hierarchical_evaluation` flag for hierarchical evaluation using [CoPHE](https://github.com/modr00cka/CoPHE/tree/master/scripts).
+Update (6 Sep 2021): added `--do_hierarchical_evaluation` flag for hierarchical evaluation using [CoPHE](https://github.com/modr00cka/CoPHE).
 
 ## Hierarchical Label-wise Attention Network
 <p align="center">
@@ -89,7 +89,7 @@ For all the models above, you can set the learning rate (```--learning_rate```),
 
 By setting ```running_times``` as ```k```, it will report averaged results and standard deviations with ```k``` runs. For example, ```--running_times 10```.
 
-For hierarchical evaluation results using [CoPHE](https://github.com/modr00cka/CoPHE/tree/master/scripts) (Falis et al., 2021), add the flag `--do_hierarchical_evaluation=True`.
+For hierarchical evaluation results using [CoPHE](https://github.com/modr00cka/CoPHE), add the flag `--do_hierarchical_evaluation=True`.
 
 Check the full list of configurations in ```HAN_train.py```.
 
@@ -163,5 +163,5 @@ For BERT models:
 # Acknowledgement
 * Our code is based on our previous implementation, [Automated-Social-Annotation](https://github.com/acadTags/Automated-Social-Annotation), which is based on [brightmart's implementation](https://github.com/brightmart/text_classification) of TextRNN and Hierarchical Attention Network under the MIT license.
 * The MIMIC-III dataset is from https://mimic.physionet.org/ after request and training.
-* The hierarchical evaluation is based on [CoPHE](https://github.com/modr00cka/CoPHE/tree/master/scripts), consented by the author modr00cka.
+* The hierarchical evaluation is based on [CoPHE](https://github.com/modr00cka/CoPHE), consented by the author modr00cka.
 * Thanks for the kind answers from [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers).
