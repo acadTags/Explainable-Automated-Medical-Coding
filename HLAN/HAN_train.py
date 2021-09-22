@@ -177,7 +177,12 @@ def main(_):
         label_sim_mat = get_label_sim_matrix(vocabulary_index2word_label,FLAGS.emb_model_path_mimic3_ds,name_scope=FLAGS.dataset,random_init=FLAGS.lambda_sim==0)
         #subsumption relations: using external knowledge bases - here needs the subsumption relation of labels in a .csv file and its path to be added to the kb_path argument (doesn't matter if FLAGS.lambda_sub is 0)               
         label_sub_mat = get_label_sub_matrix(vocabulary_word2index_label,kb_path=FLAGS.kb_icd9,name_scope='icd9',zero_init=FLAGS.lambda_sim==0);print('using icd9 relations')
- 
+        #for hierarchical evaluation
+        if FLAGS.do_hierarchical_evaluation:
+            translation_dict_icd9 = load_translation_dict_from_icd9(FLAGS.kb_icd9_he)
+        else:
+            translation_dict_icd9 = ''
+            
     #then change the if below to elif.
     '''
     if FLAGS.dataset == "mimic3-ds": # MIMIC-III full codes - # change to elif if you add another dataset option above
@@ -202,7 +207,9 @@ def main(_):
         #for hierarchical evaluation
         if FLAGS.do_hierarchical_evaluation:
             translation_dict_icd9 = load_translation_dict_from_icd9(FLAGS.kb_icd9_he)
-        
+        else:
+            translation_dict_icd9 = ''
+            
         #configurations:
         #FLAGS.batch_size = 128
         FLAGS.sequence_length = 2500 #2500 as in Mullenbach et al., 2018, but can be more if the memory allows
@@ -237,6 +244,8 @@ def main(_):
         #for hierarchical evaluation
         if FLAGS.do_hierarchical_evaluation:
             translation_dict_icd9 = load_translation_dict_from_icd9(FLAGS.kb_icd9_he)
+        else:
+            translation_dict_icd9 = ''
             
         #configurations:
         #FLAGS.batch_size = 128
@@ -270,6 +279,8 @@ def main(_):
         #for hierarchical evaluation
         if FLAGS.do_hierarchical_evaluation:
             translation_dict_icd9 = load_translation_dict_from_icd9(FLAGS.kb_icd9_he)
+        else:
+            translation_dict_icd9 = ''
             
         #configurations:
         #FLAGS.batch_size = 128

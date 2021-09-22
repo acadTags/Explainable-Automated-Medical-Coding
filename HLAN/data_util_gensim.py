@@ -208,15 +208,15 @@ def create_vocabulary_label_pre_split(training_data_path,validation_data_path,te
     return vocabulary_word2index_label,vocabulary_index2word_label
     
 # create vocabulary of lables. label is sorted. 1 is high frequency, 2 is low frequency.
-def create_vocabulary_label(vocabulary_label,name_scope='',use_seq2seq=False,label_freq_th=0):
-    print("create_vocabulary_label_sorted.started.full_data_path:",vocabulary_label)
+def create_vocabulary_label(training_data_path,name_scope='',use_seq2seq=False,label_freq_th=0):
+    print("create_vocabulary_label_sorted.started.full_data_path:",training_data_path)
     cache_path ='../cache_vocabulary_label_pik/'+ name_scope + "_label_vocabulary.pik"
     if os.path.exists(cache_path):
         with open(cache_path, 'rb') as data_f:
             vocabulary_word2index_label, vocabulary_index2word_label=pickle.load(data_f)
             return vocabulary_word2index_label, vocabulary_index2word_label
     else:
-        zhihu_f_train = codecs.open(vocabulary_label, 'r', 'utf8')
+        zhihu_f_train = codecs.open(training_data_path, 'r', 'utf8')
         lines=zhihu_f_train.readlines()
         count=0
         vocabulary_word2index_label={}
