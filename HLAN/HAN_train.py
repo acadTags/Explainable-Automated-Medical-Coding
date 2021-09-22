@@ -732,7 +732,9 @@ def main(_):
     # output per-label results
     output_per_label_csv = ','.join(['code'] + ['valid_' + ele for ele in ['prec','rec','f1']] + ['test_' + ele for ele in ['prec','rec','f1']]) + '\n' # header
     for ind, (v_prec_f,v_rec_f,v_f1_f,t_prec_f,t_rec_f,t_f1_f) in enumerate(zip(cal_ave_std(valid_prec_per_label_th),cal_ave_std(valid_rec_per_label_th),cal_ave_std(valid_f1_per_label_th),cal_ave_std(test_prec_per_label_th),cal_ave_std(test_rec_per_label_th),cal_ave_std(test_f1_per_label_th))):
-        output_per_label_csv = output_per_label_csv + ','.join([vocabulary_index2word_label[ind], v_prec_f,v_rec_f,v_f1_f,t_prec_f,t_rec_f,t_f1_f]) + '\n' # filling every row of mean±std results # _f postfix means formatted results
+        label_name = vocabulary_index2word_label[ind]
+        label_name = '\"' + label_name + '\"' if ',' in label_name else label_name # add double quote when comma is in the label name for correct csv diaplay in Excel
+        output_per_label_csv = output_per_label_csv + ','.join([label_name, v_prec_f,v_rec_f,v_f1_f,t_prec_f,t_rec_f,t_f1_f]) + '\n' # filling every row of mean±std results # _f postfix means formatted results
     output_to_file(filename_common_prefix + ' per label.csv',output_per_label_csv)
     
     # output code type results
