@@ -164,5 +164,6 @@ For BERT models:
 # Acknowledgement
 * Our code is based on our previous implementation, [Automated-Social-Annotation](https://github.com/acadTags/Automated-Social-Annotation), which is based on [brightmart's implementation](https://github.com/brightmart/text_classification) of TextRNN and Hierarchical Attention Network under the MIT license.
 * The MIMIC-III dataset is from https://mimic.physionet.org/ after request and training.
+* The data preprocessing and word embeddings are based on [caml-mimic](https://github.com/jamesmullenbach/caml-mimic).
 * The hierarchical evaluation is based on [CoPHE](https://github.com/modr00cka/CoPHE), consented by the author modr00cka.
 * Thanks for the kind answers from [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers).
