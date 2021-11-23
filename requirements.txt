@@ -1,3 +1,6 @@
+#To note: this is not to the only set of packages to run this program.
+#please see a range of possible versions in https://github.com/acadTags/Explainable-Automated-Medical-Coding#requirements
+#Python 3.7.9 for the specific versions of the packages below
 gensim==3.8.3
 matplotlib==3.3.2
 nltk==3.5
