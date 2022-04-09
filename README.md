@@ -39,6 +39,9 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 
 * Third, run the Jupyter Notebook demo [```demo_HLAN_viz.ipynb```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/demo_HLAN_viz.ipynb) and try with your own discharge summaries or those in the MIMIC-III dataset. By setting the ```to_input``` in the notebook as ```True```, the notebook will ask you to input or paste a discharge summary; otherwise, you can save your discharge summaries, each in a line, under the ```..\dataset\``` folder and replace the ```filename_to_predict``` to the filename (see ```Section 2.part2``` in the notebook). After running, the predictions are displayed with label-wise attention visualisations. The attention visualisations are further stored as ```.xlsx``` files in the ```..\explanation\``` folder. 
 
+# Reproducing Results from the Paper
+After getting access to MIMIC-III, obtain the data split from CAML using [their preprocessing script](https://github.com/jamesmullenbach/caml-mimic/blob/master/notebooks/dataproc_mimic_III.ipynb). Then follow the (steps to train on new data)[https://github.com/acadTags/Explainable-Automated-Medical-Coding#how-to-train-on-new-data].
+
 # Content
 * ```./HLAN/HAN_train.py``` contains code for configuration and training
 * ```./HLAN/HAN_model.py``` contains the computational graph, loss function and optimisation
@@ -54,7 +57,6 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 * ```./results-HEALTAC 2020``` contains the CNN, CNN+att, Bi-GRU, BERT results with label embedding initilisation
 
 # Key Configurations and Further Details
-
 ## Training the models
 
 ```--dataset``` is set to ```mimic3-ds-50``` for MIMIC-III-50, ```mimic-ds``` for MIMIC-III, and ```mimic-ds-shielding-th50``` for MIMIC-III-shielding.
