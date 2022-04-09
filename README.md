@@ -145,7 +145,7 @@ def _code_emb_init(self, code_emb, code_list):
 ```
 
 ## Dataset and preprocessing
-We used [the MIMIC-III dataset](https://mimic.physionet.org/) with the preprocessing steps from [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) to generate the two dataset settings MIMIC-III and MIMIC-III-50. We also created a MIMIC-III-shielding dataset based on the NHS shielding ICD-10 codes.
+We used [the MIMIC-III dataset](https://mimic.physionet.org/) with the preprocessing steps from [caml-mimic](https://github.com/jamesmullenbach/caml-mimic) to generate the two dataset settings MIMIC-III and MIMIC-III-50. We also created a MIMIC-III-shielding dataset based on the NHS shielding ICD-10 codes. See details in the [datasets](https://github.com/acadTags/Explainable-Automated-Medical-Coding/tree/master/datasets) page.
 
 ## Pre-training of label embeddings
 We used the Continous Bag-of-Words algorithm (CBoW) in Gensim word2vec (see [gensim.models.word2vec.Word2Vec](https://radimrehurek.com/gensim/models/word2vec.html#gensim.models.word2vec.Word2Vec), on all label sets in the training data. Codes for training word and label embeddings are available in [```train_word_embedding.py```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/embeddings/train_word_embedding.py) and [```train_code_embedding.py```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/embeddings/train_code_embedding.py).
