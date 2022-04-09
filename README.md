@@ -55,7 +55,7 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 
 # Key Configurations and Further Details
 
-## Reproducing Results from the Paper
+## Reproducing results from the paper
 After getting access to MIMIC-III, obtain the data split from CAML using [their preprocessing script](https://github.com/jamesmullenbach/caml-mimic/blob/master/notebooks/dataproc_mimic_III.ipynb). Then follow the [steps in "How to Train on New Data"](https://github.com/acadTags/Explainable-Automated-Medical-Coding#how-to-train-on-new-data).
 
 ## Training the models
