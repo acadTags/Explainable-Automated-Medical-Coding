@@ -28,19 +28,20 @@ The key computation graph is implemented in [```def inference_per_label(self)```
 
 # How to Train on New Data
 * First, format your data where each line has the format `doc__label__labelA labelB labelC`, for details see [`datasets`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/tree/master/datasets). The data can be either split to train\[-validation\]-test (each split as a single file) or without split (only one data file). 
+    * For MIMIC-III data used in the paper: see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/); obtain the  data split from CAML using [their preprocessing script](https://github.com/jamesmullenbach/caml-mimic/blob/master/notebooks/dataproc_mimic_III.ipynb).
 * Second, prepare word embeddings and the optional label embeddings using Gensim package, using existing embeddings or those trained from your texts (e.g. using script in [`embeddings`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/tree/master/embeddings), also see the [`notebook from caml-mimic`](https://github.com/jamesmullenbach/caml-mimic/blob/master/notebooks/dataproc_mimic_III.ipynb) for embedding from MIMIC-III. The trained embeddings from MIMIC-III can be [`downloaded from onedrive (3.5G with other files)`](https://onedrive.live.com/?authkey=%21ACZVuCnEV2zDKow&id=22F95C44F607EC5B%21255141&cid=22F95C44F607EC5B)).
 * Third, add a new data block ([`if FLAGS.dataset == "YOUR_DATASET_NAME":`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/HAN_train.py#L148)) with variables specified in `HAN_train.py`. Please read closely the example code block and comments provided.
 * Finally, run commands (e.g. `python HAN_train.py --dataset YOUR_DATASET_NAME`) with arguments, see details in [`Training the models`](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/README.md#training-the-models).
 
 # Jupyter Notebook Demo with MIMIC-III ICD Coding
-* First, ensure that you have requested the MIMIC-III dataset, see [the official page to request MIMIC-III](https://mimic.physionet.org/gettingstarted/access/). Place the files ```D_ICD_DIAGNOSES.csv``` and ```D_ICD_PROCEDURES.csv``` under the ```knowledge_bases``` folder.
+* First, ensure that you have requested the MIMIC-III dataset. Place the files ```D_ICD_DIAGNOSES.csv``` and ```D_ICD_PROCEDURES.csv``` under the ```knowledge_bases``` folder.
 
 * Second, download the files in ```checkpoints```, ```cache_vocabulary_label_pik```, and ```embeddings``` folders from Onedrive ([`link (3.5G with other files)`](https://onedrive.live.com/?authkey=%21ACZVuCnEV2zDKow&id=22F95C44F607EC5B%21255141&cid=22F95C44F607EC5B)).
 
 * Third, run the Jupyter Notebook demo [```demo_HLAN_viz.ipynb```](https://github.com/acadTags/Explainable-Automated-Medical-Coding/blob/master/HLAN/demo_HLAN_viz.ipynb) and try with your own discharge summaries or those in the MIMIC-III dataset. By setting the ```to_input``` in the notebook as ```True```, the notebook will ask you to input or paste a discharge summary; otherwise, you can save your discharge summaries, each in a line, under the ```..\dataset\``` folder and replace the ```filename_to_predict``` to the filename (see ```Section 2.part2``` in the notebook). After running, the predictions are displayed with label-wise attention visualisations. The attention visualisations are further stored as ```.xlsx``` files in the ```..\explanation\``` folder. 
 
 # Reproducing Results from the Paper
-After getting access to MIMIC-III, obtain the data split from CAML using [their preprocessing script](https://github.com/jamesmullenbach/caml-mimic/blob/master/notebooks/dataproc_mimic_III.ipynb). Then follow the (steps to train on new data)[https://github.com/acadTags/Explainable-Automated-Medical-Coding#how-to-train-on-new-data].
+After getting access to MIMIC-III, obtain the data split from CAML using [their preprocessing script](https://github.com/jamesmullenbach/caml-mimic/blob/master/notebooks/dataproc_mimic_III.ipynb). Then follow the [steps to train on new data](https://github.com/acadTags/Explainable-Automated-Medical-Coding#how-to-train-on-new-data).
 
 # Content
 * ```./HLAN/HAN_train.py``` contains code for configuration and training
