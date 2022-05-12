@@ -7,7 +7,9 @@ Detailed explanation of the approach is in
 
 A part of the results (especially regarding label embedding initialisation) was orally and virtually presented in [HealTAC 2020](http://healtex.org/healtac-2020/programme/) with [slides](https://drive.google.com/file/d/1XIhuwMuelmsFYvsXYABr7NJjnJTULrez/view) available.
 
-Update (6 Sep 2021): added `--do_hierarchical_evaluation` flag for hierarchical evaluation using [CoPHE](https://github.com/modr00cka/CoPHE).
+Update: 
+* Hierarchical evaluation [CoPHE](https://github.com/modr00cka/CoPHE) by @modr00cka: added `--do_hierarchical_evaluation` flag for hierarchical evaluation. (6 Sep 2021)
+* Code refactoring [CS598DL4H](https://github.com/dmcguire81/CS598DL4H) by @dmcguire81 and @chrispebble: a cleaned implementation of the repository on HLAN/HA-GRU/HAN with Google Colab setup. (12 May 2022)
 
 ## Hierarchical Label-wise Attention Network
 <p align="center">
@@ -168,5 +170,5 @@ For BERT models:
 * Our code is based on our previous implementation, [Automated-Social-Annotation](https://github.com/acadTags/Automated-Social-Annotation), which is based on [brightmart's implementation](https://github.com/brightmart/text_classification) of TextRNN and Hierarchical Attention Network under the MIT license.
 * The MIMIC-III dataset is from https://mimic.physionet.org/ after request and training.
 * The data preprocessing and word embeddings are based on [caml-mimic](https://github.com/jamesmullenbach/caml-mimic).
-* The hierarchical evaluation is based on [CoPHE](https://github.com/modr00cka/CoPHE), consented by the author modr00cka.
+* The hierarchical evaluation is based on [CoPHE](https://github.com/modr00cka/CoPHE), consented by the author @modr00cka.
 * Thanks for the kind answers from [SimpleTransformers](https://github.com/ThilinaRajapakse/simpletransformers).
