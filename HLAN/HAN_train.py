@@ -648,7 +648,7 @@ def main(_):
             
             prediction_str = ""
             # output final predictions for qualitative analysis (with attention visualisation)
-            if FLAGS.report_rand_pred == True:
+            if FLAGS.report_rand_pred:
                 if FLAGS.per_label_attention: # to do for per_label_sent_only
                     prediction_str = display_for_qualitative_evaluation_per_label(sess,model,label_sim_mat,label_sub_mat,testX,testY,batch_size,vocabulary_index2word,vocabulary_index2word_label,threshold=FLAGS.pred_threshold,use_random_sampling=FLAGS.use_random_sampling) #default as not using random sampling, that is, to display all results with attention weights (for small test set)
                 else:
